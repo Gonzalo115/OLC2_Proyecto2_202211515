@@ -1,1 +1,9 @@
-# OLC2_Proyecto2_202211515
+# Universidad De San Carlos de Gutatemala
+
+LABORATORIO ORGANIZACION DE LENGUAJES Y COMPILADORES 2
+
+Sección B
+
+Nombre: Gonzalo Fernando Pérez Cazún
+
+Carné: 202211515
