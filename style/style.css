@@ -1,0 +1,150 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.pestañas-container {
+    margin-bottom: 10px; /* Espacio debajo del contenedor de pestañas */
+    gap: 10px;
+    height: 45px; /* Altura del contenedor */
+    background-color: #494848;
+    display: flex; /* Utiliza flexbox para alinear los botones */
+    align-items: center; /* Centra los botones verticalmente */
+}
+
+/* Estilo para el contenedor del menú desplegable */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Estilo para el botón del menú */
+.dropbtn {
+    background-color: #494848;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    border: 2px solid #767676;
+}
+
+/* Estilo para el contenido del menú desplegable */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+/* Estilo para los botones dentro del menú desplegable */
+.dropdown-content button {
+    background-color: #ffffff;
+    color: #000000;
+    border: none;
+    padding: 10px 20px;
+    text-align: left;
+    width: 100%; /* Asegura que el botón ocupe el 100% del ancho del contenedor */
+    box-sizing: border-box;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* Cambia el color de fondo del botón al pasar el cursor sobre él */
+.dropdown-content button:hover {
+    background-color: #f1f1f1;
+}
+
+/* Muestra el contenido del menú desplegable al hacer clic en el botón */
+.dropdown.show .dropdown-content {
+    display: block;
+}
+
+/* Estilo para el contenedor del menú desplegable */
+.dropdown1 {
+    position: relative;
+    display: inline-block;
+}
+
+/* Estilo para el botón del menú */
+.dropbtn1 {
+    background-color: #494848;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    border: 2px solid #767676;
+}
+
+/* Estilo para el contenedor del menú desplegable */
+.dropdown2 {
+    position: relative;
+    display: inline-block;
+}
+
+/* Estilo para el botón del menú */
+.dropbtn2 {
+    background-color: #494848;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    border: 2px solid #767676;
+}
+
+/* Estilo para el contenido del menú desplegable */
+.dropdown-content2 {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+/* Estilo para los botones dentro del menú desplegable */
+.dropdown-content2 button {
+    background-color: #ffffff;
+    color: #000000;
+    border: none;
+    padding: 10px 20px;
+    text-align: left;
+    width: 100%; /* Asegura que el botón ocupe el 100% del ancho del contenedor */
+    box-sizing: border-box;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* Cambia el color de fondo del botón al pasar el cursor sobre él */
+.dropdown-content2 button:hover {
+    background-color: #f1f1f1;
+}
+
+/* Muestra el contenido del menú desplegable al hacer clic en el botón */
+.dropdown2.show .dropdown-content2 {
+    display: block;
+}
+
+
+
+.textarea-container {
+    display: flex;
+    gap: 10px; /* Espacio entre los divs */
+    margin: 0 10px;
+}
+
+.textarea-editor, .textarea-consola {
+    flex: 1; /* Hace que ambos divs ocupen el mismo espacio */
+    min-width: 0; /* Asegura que los divs no se compriman más allá de un tamaño razonable */
+}
+
+.textarea-editor textarea, .textarea-consola textarea {
+    width: 85%; /* El área de texto ocupa el 100% del ancho del div */
+    height: 500px; /* Ajusta la altura según sea necesario */
+    box-sizing: border-box; /* Incluye el padding y el borde en el ancho y alto total */
+    resize: none;
+}

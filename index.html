@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OakLand</title>
+    <link rel="stylesheet" href="style/style.css">
+</head>
+<body>
+    <form id="mainForm">
+        <div class="pestañas-container">  
+            <div class="dropdown">
+                <button class="dropbtn">Archivos</button>
+                <div class="dropdown-content files-menu">
+                    <button id="abrir">Abrir</button>
+                    <button id="nuevo">Nuevo</button>
+                    <button id="guardar">Guardar</button>
+                </div>
+            </div>
+            <div class="dropdown1">
+                <button class="dropbtn1" id="analizar">Analizar</button>
+            </div>
+            <div class="dropdown2">
+                <button class="dropbtn2">Reporte</button>
+                <div class="dropdown-content2 files-menu">
+                    <button class="errores">Errores</button>
+                    <button class="simbolos">Tabla Simbolos</button>
+                </div>
+            </div>
+        </div>
+        <div class="textarea-container">
+            <div class="textarea-editor">
+                <label for="textAreaEditor">Editor</label><br>
+                <textarea id="textAreaEditor" name="textAreaEditor"></textarea>
+            </div>
+            <div class="textarea-consola">
+                <label for="textAreaConsola">Consola</label>
+                <button class="btnCopy" id="copy">Copiar</button><br>
+                <textarea id="textAreaConsola" name="textAreaConsola"></textarea>
+            </div>
+        </div>
+        <pre id="ast"></pre>
+    </form>
+
+    <input type="file" id="fileInput" style="display: none;" accept=".oak">
+    <script type="module" src="main.js"></script>
+    <script src="script.js"></script> <!-- Archivo JS para el menú desplegable -->
+</body>
+</html>
