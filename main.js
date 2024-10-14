@@ -42,10 +42,6 @@ const btnAnalizar = document.getElementById('analizar')
 
 
 btnAnalizar.addEventListener('click', () => {
-
-
-    console.log("hola")
-
     // Interprete
 
     // const codigoFuente = editor.value

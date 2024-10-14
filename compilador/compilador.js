@@ -3,7 +3,6 @@ import { Generador } from "../risc/generador.js";
 import { BaseVisitor } from "./visitor.js";
 import { numberToF32 } from "../risc/utils.js";
 
-
 export class CompilerVisitor extends BaseVisitor {
 
     constructor() {
@@ -17,7 +16,15 @@ export class CompilerVisitor extends BaseVisitor {
     */
     visitExpresionStmt(node) {
         node.exp.accept(this);
-        this.code.popObject(r.T0);
+        
+
+        var reg = r.T0;
+
+        if (this.code.getTopObject().type === 'float'){
+            reg = f.FT0;
+        }
+
+        this.code.popObject(reg);
     }
 
     /**
@@ -199,10 +206,10 @@ export class CompilerVisitor extends BaseVisitor {
             return;
         }
 
-        if (izq.type === 'char' && der.type === 'char'){
+        if (izq.type === 'char' && der.type === 'char') {
             this.code.add(r.A0, r.ZERO, r.T0);
             this.code.add(r.A1, r.ZERO, r.T1);
-            switch (node.operacion){
+            switch (node.operacion) {
                 case '==':
                     this.code.callBuiltin('equalString');
                     break
@@ -214,7 +221,7 @@ export class CompilerVisitor extends BaseVisitor {
             return;
         }
 
-        if (izq.type === 'string' && der.type === 'string'){
+        if (izq.type === 'string' && der.type === 'string') {
             this.code.add(r.A0, r.ZERO, r.T0);
             this.code.add(r.A1, r.ZERO, r.T1);
             switch (node.operacion) {
@@ -245,7 +252,7 @@ export class CompilerVisitor extends BaseVisitor {
         const DerTipo = this.code.getTopObjectP(2).type;
 
         if ((IzqTipo === 'float' && DerTipo === 'float') || (IzqTipo === 'int' && DerTipo === 'float') || (IzqTipo === 'float' && DerTipo === 'int')) {
-            this.code.popObject((IzqTipo === 'float')? f.FT0 : r.T0);
+            this.code.popObject((IzqTipo === 'float') ? f.FT0 : r.T0);
             this.code.popObject((DerTipo === 'float') ? f.FT1 : r.T1);
             if (IzqTipo !== 'float') this.code.fcvtsw(f.FT0, r.T0);
             if (DerTipo !== 'float') this.code.fcvtsw(f.FT1, r.T1);
@@ -295,7 +302,7 @@ export class CompilerVisitor extends BaseVisitor {
             return;
         }
 
-        if (IzqTipo === 'char' && DerTipo === 'char'){
+        if (IzqTipo === 'char' && DerTipo === 'char') {
             switch (node.operacion) {
                 case '<':
                     this.code.popObject(r.T0);
@@ -397,31 +404,132 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitDeclaracionVariable']}
     */
     visitDeclaracionVariable(node) {
-        throw new Error('Metodo visitDeclaracionVariable no implementado');
+        this.code.comment(`Declaracion Variable: ${node.id}`);
+
+        if (node.exp != null) {
+            node.exp.accept(this);
+        } else {
+
+            switch (node.tipo) {
+                case 'int':
+                    this.code.pushConstant({ type: node.tipo, valor: 0 });
+                    break
+                case 'float':
+                    this.code.pushConstant({ type: node.tipo, valor: 0 });
+                    break
+                case 'char':
+                    this.code.pushConstant({ type: node.tipo, valor: '' });
+                    break
+                case 'string':
+                    this.code.pushConstant({ type: node.tipo, valor: "" });
+                case 'boolean':
+                    this.code.pushConstant({ type: node.tipo, valor: true });
+                    break
+            }
+        }
+
+        this.code.tagObject(node.id);
+        this.code.comment(`Fin declaracion Variable: ${node.id}`);
     }
-
-
-    /**
-      * @type {BaseVisitor['visitReferenciaVariable']}
-    */
-    visitReferenciaVariable(node) {
-        throw new Error('Metodo visitReferenciaVariable no implementado');
-    }
-
 
     /**
       * @type {BaseVisitor['visitAsignacion']}
     */
     visitAsignacion(node) {
-        throw new Error('Metodo visitAsignacion no implementado');
+        this.code.comment(`Asignacion Variable: ${node.id}`);
+
+        node.asgn.accept(this);
+
+        const [_, variableObjectAux] = this.code.getObject(node.id);
+
+        var reg = r.T0;
+
+        if (variableObjectAux.type === "float"){
+            reg = f.FT0;
+        }
+
+        const valueObject = this.code.popObject(reg);
+
+        const [offset, variableObject] = this.code.getObject(node.id);
+
+        this.code.addi(r.T1, r.SP, offset);
+        this.code.sw(r.T0, r.T1);
+
+        variableObject.type = valueObject.type;
+
+        this.code.push(r.T0);
+        this.code.pushObject(valueObject);
+
+        this.code.comment(`Fin Asignacion Variable: ${node.id}`);
     }
 
+    /**
+      * @type {BaseVisitor['visitReferenciaVariable']}
+    */
+    visitReferenciaVariable(node) {
+        this.code.comment(`Referencia Variable: ${node.id}`);
+
+        const [offset, variableObject] = this.code.getObject(node.id);
+        this.code.addi(r.T0, r.SP, offset);
+        this.code.lw(r.T1, r.T0);
+        this.code.push(r.T1);
+        this.code.pushObject({ ...variableObject, id: undefined });
+
+        this.code.comment(`Fin Referencia Variable: ${node.id}`);
+    }
 
     /**
       * @type {BaseVisitor['visitIncremento']}
     */
     visitIncremento(node) {
-        throw new Error('Metodo visitIncremento no implementado');
+        this.code.comment(`Incremente Variable: ${node.id}`);
+
+        node.valor.accept(this);
+
+        const [offsetAux, variableObjectAux] = this.code.getObject(node.id);
+
+        var valueObject;
+
+        if (variableObjectAux.type === 'int'){
+            this.code.addi(r.T0, r.SP, offsetAux);
+            this.code.lw(r.T1, r.T0);
+            this.code.push(r.T1);
+            this.code.pushObject({ type: 'int', length: 4 });
+            this.code.popObject(r.T1);
+            this.code.popObject(r.T0);
+            this.code.add(r.T0, r.T1, r.T0);
+            this.code.push(r.T0);
+            this.code.pushObject({ type: 'int', length: 4 });
+            valueObject = this.code.popObject(r.T0)
+        }else if (variableObjectAux.type === 'float'){
+            this.code.addi(r.T0, r.SP, offsetAux);
+            this.code.lw(r.T1, r.T0);
+            this.code.push(r.T1);
+            this.code.pushObject({ type: 'float', length: 4 });
+            this.code.popObject(f.FT1);
+
+            var ObjAux = this.code.getTopObject().type === 'float';
+            this.code.popObject(ObjAux ? f.FT0 : r.T0);     
+            if (!ObjAux) this.code.fcvtsw(f.FT0, r.T0);
+            
+            this.code.fadd(f.FT0, f.FT1, f.FT0);
+            this.code.pushFloat(f.FT0);
+            this.code.pushObject({ type: 'float', length: 4 });
+            valueObject = this.code.popObject(f.FT0)
+        }
+
+
+        const [offset, variableObject] = this.code.getObject(node.id);
+
+        this.code.addi(r.T1, r.SP, offset);
+        this.code.sw(r.T0, r.T1);
+
+        variableObject.type = valueObject.type;
+
+        this.code.push(r.T0);
+        this.code.pushObject(valueObject);
+
+        this.code.comment(`Fin Incremento Variable: ${node.id}`);
     }
 
 
@@ -429,7 +537,11 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitDecremento']}
     */
     visitDecremento(node) {
-        throw new Error('Metodo visitDecremento no implementado');
+        this.code.comment(`Decremento Variable: ${node.id}`);
+        
+
+
+        this.code.comment(`Fin Decremento Variable: ${node.id}`);
     }
 
 
@@ -452,6 +564,10 @@ export class CompilerVisitor extends BaseVisitor {
         }
 
         tipoPrint[object.type]();
+        
+        this.code.li(r.A0, 10)
+        this.code.li(r.A7, 11)
+        this.code.ecall()
     }
 
 
@@ -466,7 +582,20 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitBloque']}
     */
     visitBloque(node) {
-        throw new Error('Metodo visitBloque no implementado');
+        this.code.comment('Inicio de bloque');
+
+        this.code.newScope();
+
+        node.dcls.forEach(d => d.accept(this));
+
+        this.code.comment('Reduciendo la pila');
+        const bytesToRemove = this.code.endScope();
+
+        if (bytesToRemove > 0) {
+            this.code.addi(r.SP, r.SP, bytesToRemove);
+        }
+
+        this.code.comment('Fin de bloque');
     }
 
 

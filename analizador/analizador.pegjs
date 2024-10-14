@@ -44,7 +44,7 @@ Declaracion = _ dcl:DeclaracionVar _ { return dcl }
             / _ dcF:FuncDcl _ { return dcF }
             / _ stmt:Stmt _ { return stmt }
 
-DeclaracionVar =  tipo:Tipo _ id:Identificador
+DeclaracionVar =  tipo:Tipo _ id:Identificador _
                 exp:(
                   _"=" _ exp:Expresion _  { return exp } 
                 )? ";" { return crearNodo('declaracionVariable', { tipo, id, exp }) } 
