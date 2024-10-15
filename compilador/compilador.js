@@ -8,6 +8,9 @@ export class CompilerVisitor extends BaseVisitor {
     constructor() {
         super();
         this.code = new Generador();
+
+        this.continueLabel = null;
+        this.breakLabel = null;
     }
 
 
@@ -16,11 +19,11 @@ export class CompilerVisitor extends BaseVisitor {
     */
     visitExpresionStmt(node) {
         node.exp.accept(this);
-        
+
 
         var reg = r.T0;
 
-        if (this.code.getTopObject().type === 'float'){
+        if (this.code.getTopObject().type === 'float') {
             reg = f.FT0;
         }
 
@@ -31,9 +34,9 @@ export class CompilerVisitor extends BaseVisitor {
      * @type {BaseVisitor['visitDatoPrimitivo']}
     */
     visitDatoPrimitivo(node) {
-        this.code.comment(`Primitivo: ${node.valor}`);
+        this.code.comment(`Primitivo`);
         this.code.pushConstant({ type: node.tipo, valor: node.valor });
-        this.code.comment(`Fin Primitivo: ${node.valor}`);
+        this.code.comment(`Fin Primitivo`);
     }
 
 
@@ -41,7 +44,7 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitAritmetica']}
     */
     visitAritmetica(node) {
-        this.code.comment(`Operacion: ${node.op}`);
+        this.code.comment(`Operacion: ${node.operacion}`);
 
         node.exp_left.accept(this); // izq |
         node.exp_right.accept(this); // izq | der
@@ -174,13 +177,13 @@ export class CompilerVisitor extends BaseVisitor {
         node.exp_left.accept(this);
 
         const isIzqFloat = this.code.getTopObject().type === 'float';
-        const izq = this.code.popObject(isIzqFloat ? f.FT0 : r.T0); // izq
+        const izq = this.code.popObject(isIzqFloat ? f.FT1 : r.T1); // izq
         const isDerFloat = this.code.getTopObject().type === 'float';
-        const der = this.code.popObject(isDerFloat ? f.FT1 : r.T1); // der
+        const der = this.code.popObject(isDerFloat ? f.FT2 : r.T2); // der
 
         if ((izq.type === 'float' && der.type === 'float') || (izq.type === 'int' && der.type === 'float') || (izq.type === 'float' && der.type === 'int')) {
-            if (!isIzqFloat) this.code.fcvtsw(f.FT0, r.T0);
-            if (!isDerFloat) this.code.fcvtsw(f.FT1, r.T1);
+            if (!isIzqFloat) this.code.fcvtsw(f.FT1, r.T1);
+            if (!isDerFloat) this.code.fcvtsw(f.FT2, r.T2);
             switch (node.operacion) {
                 case '==':
                     this.code.callBuiltin('equalFloat');
@@ -193,7 +196,7 @@ export class CompilerVisitor extends BaseVisitor {
             return;
         }
 
-        if (izq.type === 'int' && der.type === 'int') {
+        if ((izq.type === 'int' && der.type === 'int') || (izq.type === 'boolean' && der.type === 'boolean')) {
             switch (node.operacion) {
                 case '==':
                     this.code.callBuiltin('equalInt');
@@ -207,8 +210,8 @@ export class CompilerVisitor extends BaseVisitor {
         }
 
         if (izq.type === 'char' && der.type === 'char') {
-            this.code.add(r.A0, r.ZERO, r.T0);
-            this.code.add(r.A1, r.ZERO, r.T1);
+            this.code.add(r.A0, r.ZERO, r.T1);
+            this.code.add(r.A1, r.ZERO, r.T2);
             switch (node.operacion) {
                 case '==':
                     this.code.callBuiltin('equalString');
@@ -222,8 +225,8 @@ export class CompilerVisitor extends BaseVisitor {
         }
 
         if (izq.type === 'string' && der.type === 'string') {
-            this.code.add(r.A0, r.ZERO, r.T0);
-            this.code.add(r.A1, r.ZERO, r.T1);
+            this.code.add(r.A0, r.ZERO, r.T1);
+            this.code.add(r.A1, r.ZERO, r.T2);
             switch (node.operacion) {
                 case '==':
                     this.code.callBuiltin('equalString');
@@ -444,7 +447,7 @@ export class CompilerVisitor extends BaseVisitor {
 
         var reg = r.T0;
 
-        if (variableObjectAux.type === "float"){
+        if (variableObjectAux.type === "float") {
             reg = f.FT0;
         }
 
@@ -490,7 +493,7 @@ export class CompilerVisitor extends BaseVisitor {
 
         var valueObject;
 
-        if (variableObjectAux.type === 'int'){
+        if (variableObjectAux.type === 'int') {
             this.code.addi(r.T0, r.SP, offsetAux);
             this.code.lw(r.T1, r.T0);
             this.code.push(r.T1);
@@ -501,16 +504,17 @@ export class CompilerVisitor extends BaseVisitor {
             this.code.push(r.T0);
             this.code.pushObject({ type: 'int', length: 4 });
             valueObject = this.code.popObject(r.T0)
-        }else if (variableObjectAux.type === 'float'){
+        } else if (variableObjectAux.type === 'float') {
             this.code.addi(r.T0, r.SP, offsetAux);
             this.code.lw(r.T1, r.T0);
-            this.code.push(r.T1);
+            this.code.fcvtsw(f.FT1, r.T1);
+            this.code.pushFloat(f.FT1);
             this.code.pushObject({ type: 'float', length: 4 });
             this.code.popObject(f.FT1);
 
-            var ObjAux = this.code.getTopObject().type === 'float';
-            this.code.popObject(ObjAux ? f.FT0 : r.T0);     
-            if (!ObjAux) this.code.fcvtsw(f.FT0, r.T0);
+            const isFloat = this.code.getTopObject().type === 'float';
+            this.code.popObject(isFloat ? f.FT0 : r.T0);
+            if (!isFloat) this.code.fcvtsw(f.FT0, r.T0);
             
             this.code.fadd(f.FT0, f.FT1, f.FT0);
             this.code.pushFloat(f.FT0);
@@ -538,8 +542,51 @@ export class CompilerVisitor extends BaseVisitor {
     */
     visitDecremento(node) {
         this.code.comment(`Decremento Variable: ${node.id}`);
-        
 
+        node.valor.accept(this);
+
+        const [offsetAux, variableObjectAux] = this.code.getObject(node.id);
+
+        var valueObject;
+
+        if (variableObjectAux.type === 'int') {
+            this.code.addi(r.T0, r.SP, offsetAux);
+            this.code.lw(r.T1, r.T0);
+            this.code.push(r.T1);
+            this.code.pushObject({ type: 'int', length: 4 });
+            this.code.popObject(r.T1);
+            this.code.popObject(r.T0);
+            this.code.sub(r.T0, r.T1, r.T0);
+            this.code.push(r.T0);
+            this.code.pushObject({ type: 'int', length: 4 });
+            valueObject = this.code.popObject(r.T0)
+        } else if (variableObjectAux.type === 'float') {
+            this.code.addi(r.T0, r.SP, offsetAux);
+            this.code.lw(r.T1, r.T0);
+            this.code.push(r.T1);
+            this.code.pushObject({ type: 'float', length: 4 });
+            this.code.popObject(f.FT1);
+
+            var ObjAux = this.code.getTopObject().type === 'float';
+            this.code.popObject(ObjAux ? f.FT0 : r.T0);
+            if (!ObjAux) this.code.fcvtsw(f.FT0, r.T0);
+
+            this.code.fsub(f.FT0, f.FT1, f.FT0);
+            this.code.pushFloat(f.FT0);
+            this.code.pushObject({ type: 'float', length: 4 });
+            valueObject = this.code.popObject(f.FT0)
+        }
+
+
+        const [offset, variableObject] = this.code.getObject(node.id);
+
+        this.code.addi(r.T1, r.SP, offset);
+        this.code.sw(r.T0, r.T1);
+
+        variableObject.type = valueObject.type;
+
+        this.code.push(r.T0);
+        this.code.pushObject(valueObject);
 
         this.code.comment(`Fin Decremento Variable: ${node.id}`);
     }
@@ -564,7 +611,7 @@ export class CompilerVisitor extends BaseVisitor {
         }
 
         tipoPrint[object.type]();
-        
+
         this.code.li(r.A0, 10)
         this.code.li(r.A7, 11)
         this.code.ecall()
@@ -603,7 +650,29 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitTernario']}
     */
     visitTernario(node) {
-        throw new Error('Metodo visitTernario no implementado');
+        this.code.comment('Inicio de ternario');
+
+        // Evaluar si la condicion es verdadera o falsa
+        this.code.comment('Condicion');
+        node.cond.accept(this);
+        this.code.popObject(r.T0);
+        this.code.comment('Fin de condicion');
+
+        //Crear las etiquetas para los saltos 
+        const condFalsaLabel = this.code.getLabel();
+        const endTernarioLabel = this.code.getLabel();
+
+        //Validar si es falsa o verdadra
+        this.code.beq(r.T0, r.ZERO, condFalsaLabel);
+        this.code.comment('Si la condicion es verdadera');
+        node.expTrue.accept(this);
+        this.code.j(endTernarioLabel);
+        this.code.addLabel(condFalsaLabel);
+        this.code.comment('Si la condicion es falsa');
+        node.expTrue.accept(this);
+        this.code.addLabel(endTernarioLabel);
+
+        this.code.comment('Fin de ternario');
     }
 
 
@@ -611,7 +680,36 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitIf']}
     */
     visitIf(node) {
-        throw new Error('Metodo visitIf no implementado');
+        this.code.comment('Inicio de If');
+
+        this.code.comment('Condicion');
+        node.cond.accept(this);
+        this.code.popObject(r.T0);
+        this.code.comment('Fin de condicion');
+
+        const hasElse = node.stmtFalse
+
+        if (hasElse) {
+            const elseLabel = this.code.getLabel();
+            const endIfLabel = this.code.getLabel();
+
+            this.code.beq(r.T0, r.ZERO, elseLabel);
+            this.code.comment('Rama verdadera');
+            node.stmtTrue.accept(this);
+            this.code.j(endIfLabel);
+            this.code.addLabel(elseLabel);
+            this.code.comment('Rama falsa');
+            node.stmtFalse.accept(this);
+            this.code.addLabel(endIfLabel);
+        } else {
+            const endIfLabel = this.code.getLabel();
+            this.code.beq(r.T0, r.ZERO, endIfLabel);
+            this.code.comment('Rama verdadera');
+            node.stmtTrue.accept(this);
+            this.code.addLabel(endIfLabel);
+        }
+
+        this.code.comment('Fin del If');
     }
 
 
@@ -619,7 +717,76 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitSwitch']}
     */
     visitSwitch(node) {
-        throw new Error('Metodo visitSwitch no implementado');
+        this.code.comment('Inicio del Switch');
+
+        // Evaluar la exp para el condicion
+        node.exp.accept(this);
+
+        const condFloat = this.code.getTopObject().type === 'float';
+        const objCond = this.code.popObject(condFloat ? f.FT1 : r.T1);
+
+        //Label de finalizacion junto a el break
+        const labelEndSwitch = this.code.getLabel();
+        const prevBreakLabel = this.breakLabel;
+        this.breakLabel = labelEndSwitch;
+
+        //Etiqueta para el salto a el sigueinte kcaso si no existiera un break
+        let saltoCaso = this.code.getLabel();
+
+        for (let i = 0; i < node.casos.length; i++) {
+
+            node.casos[i].exp.accept(this)
+            const casoFloat = this.code.getTopObject().type === 'float';
+            const objCaso = this.code.popObject(casoFloat ? f.FT2 : r.T2);
+
+            // Validar si el caso es verdadero
+            if ((objCond.type === 'float' && objCaso.type === 'float') || (objCond.type === 'int' && objCaso.type === 'float') || (objCond.type === 'float' && objCaso.type === 'int')) {
+                if (!condFloat) this.code.fcvtsw(f.FT1, r.T1);
+                if (!casoFloat) this.code.fcvtsw(f.FT2, r.T2);
+                this.code.callBuiltin('equalFloat');
+            }
+
+            if ((objCond.type === 'int' && objCaso.type === 'int') || (objCond.type === 'int' && objCaso.type === 'int')) {
+                this.code.callBuiltin('equalInt');
+            }
+
+            if ((objCond.type === 'char' && objCaso.type === 'char') || (objCond.type === 'string' && objCaso.type === 'string')) {
+                this.code.add(r.A0, r.ZERO, r.T1);
+                this.code.add(r.A1, r.ZERO, r.T2);
+                this.code.callBuiltin('equalString');
+            }
+
+            //Crear el correlativo de las labels
+            const labelEnd = this.code.getLabel();
+
+            //Si en T0 es falso '0' entonces se saltara el caso
+            this.code.beq(r.T0, r.ZERO, labelEnd);
+
+            this.code.addLabel(saltoCaso);
+
+
+            //Evaluar el cuerpo del caso
+            node.casos[i].stmt.accept(this)
+
+            //Solo se podra saltar a el siguiente caso si no hay un caso mas 
+            if (i + 1 < node.casos.length) {
+                saltoCaso = this.code.getLabel();
+                this.code.j(saltoCaso);
+            }
+
+            // Colocara el label que me indicara que se salta el caso
+            this.code.addLabel(labelEnd);
+        }
+
+        if (node.stmtDefault) {
+            node.stmtDefault.accept(this);
+        }
+
+        this.code.addLabel(labelEndSwitch);
+        this.breakLabel = prevBreakLabel;
+
+        this.code.comment('Fin del Switch');
+
     }
 
 
@@ -627,7 +794,7 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitCaso']}
     */
     visitCaso(node) {
-        throw new Error('Metodo visitCaso no implementado');
+        throw new Error('Metodo auxiliar');
     }
 
 
@@ -635,7 +802,27 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitWhile']}
     */
     visitWhile(node) {
-        throw new Error('Metodo visitWhile no implementado');
+        const startWhileLabel = this.code.getLabel();
+        const prevContinueLabel = this.continueLabel;
+        this.continueLabel = startWhileLabel;
+
+        const endWhileLabel = this.code.getLabel();
+        const prevBreakLabel = this.breakLabel;
+        this.breakLabel = endWhileLabel;
+
+        this.code.addLabel(startWhileLabel);
+        this.code.comment('Condicion');
+        node.cond.accept(this);
+        this.code.popObject(r.T0);
+        this.code.comment('Fin de condicion');
+        this.code.beq(r.T0, r.ZERO, endWhileLabel);
+        this.code.comment('Cuerpo del while');
+        node.stmt.accept(this);
+        this.code.j(startWhileLabel);
+        this.code.addLabel(endWhileLabel);
+
+        this.continueLabel = prevContinueLabel;
+        this.breakLabel = prevBreakLabel;
     }
 
 
@@ -643,7 +830,50 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitFor']}
     */
     visitFor(node) {
-        throw new Error('Metodo visitFor no implementado');
+        this.code.comment('For');
+
+        const startForLabel = this.code.getLabel();
+
+        const endForLabel = this.code.getLabel();
+        const prevBreakLabel = this.breakLabel;
+        this.breakLabel = endForLabel;
+
+        const incrementLabel = this.code.getLabel();
+        const prevContinueLabel = this.continueLabel;
+        this.continueLabel = incrementLabel;
+
+        this.code.newScope();
+
+        node.init.accept(this);
+
+        this.code.addLabel(startForLabel);
+        this.code.comment('Condicion');
+        node.cond.accept(this);
+        this.code.popObject(r.T0);
+        this.code.comment('Fin de condicion');
+        this.code.beq(r.T0, r.ZERO, endForLabel);
+
+        this.code.comment('Cuerpo del for');
+        node.stmt.accept(this);
+
+        this.code.addLabel(incrementLabel);
+        node.inc.accept(this);
+        this.code.popObject(r.T0);
+        this.code.j(startForLabel);
+
+        this.code.addLabel(endForLabel);
+
+        this.code.comment('Reduciendo la pila');
+        const bytesToRemove = this.code.endScope();
+
+        if (bytesToRemove > 0) {
+            this.code.addi(r.SP, r.SP, bytesToRemove);
+        }
+
+        this.continueLabel = prevContinueLabel;
+        this.breakLabel = prevBreakLabel;
+
+        this.code.comment('Fin de For');
     }
 
 
@@ -651,7 +881,7 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitBreak']}
     */
     visitBreak(node) {
-        throw new Error('Metodo visitBreak no implementado');
+        this.code.j(this.breakLabel);
     }
 
 
@@ -659,7 +889,7 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitContinue']}
     */
     visitContinue(node) {
-        throw new Error('Metodo visitContinue no implementado');
+        this.code.j(this.continueLabel);
     }
 
 

@@ -140,7 +140,7 @@ export const equalInt = (code) => {
     const labelEnd = code.getLabel();
 
     //Realizar la == para evaluar si se salta hasta la laabel si es verdadeera
-    code.beq(r.T0, r.T1, labelTrue);
+    code.beq(r.T1, r.T2, labelTrue);
 
     //Si ha llegado hasta aui significa que era falso lo anterior y guardar en t0 false
     code.li(r.T0, 0);
@@ -168,9 +168,9 @@ export const notEqualInt = (code) => {
     const labelEnd = code.getLabel();
 
     //Realizar la != para evaluar si se salta hasta la laabel si es verdadeera
-    code.bne(r.T0, r.T1, labelTrue);
+    code.bne(r.T1, r.T2, labelTrue);
 
-    //Si ha llegado hasta aui significa que era falso lo anterior y guardar en t0 false
+    //Si ha llegado hasta aqui significa que era falso lo anterior y guardar en t0 false
     code.li(r.T0, 0);
     code.push(r.T0);
 
@@ -190,7 +190,7 @@ export const notEqualInt = (code) => {
  * @param {Generador} code
  */
 export const equalFloat = (code) => {
-    code.feq(r.T0, f.FT0, f.FT1);
+    code.feq(r.T0, f.FT1, f.FT2);
     code.push(r.T0);
 }
 
@@ -198,16 +198,9 @@ export const equalFloat = (code) => {
  * @param {Generador} code
  */
 export const notEqualFloat = (code) => {
-    code.feq(r.T0, f.FT0, f.FT1);
+    code.feq(r.T0, f.FT1, f.FT2);
     code.xori(r.T0, r.T0)
     code.push(r.T0);
-}
-
-/**
- * @param {Generador} code
- */
-export const minMayF = (code) => {
-
 }
 
 /**
@@ -266,14 +259,6 @@ export const minMayC = (code) => {
 
     //label finalizacion
     code.addLabel(labelEnd);
-}
-
-
-/**
- * @param {Generador} code
- */
-export const minMaEqF = (code) => {
-
 }
 
 
@@ -345,10 +330,8 @@ export const builtins = {
     notEqualInt: notEqualInt,
     equalFloat: equalFloat,
     notEqualFloat: notEqualFloat,
-    minMayF: minMayF,
     minMayI: minMayI,
     minMayC: minMayC,
-    minMaEqF: minMaEqF,
     minMaEqI: minMaEqI,
     minMaEqC: minMaEqC
 }

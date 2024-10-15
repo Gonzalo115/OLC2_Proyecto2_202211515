@@ -236,7 +236,7 @@ TipoFuc = "int"     { return text(); }
 
 
 // Identificador
-Identificador = [a-zA-Z][a-zA-Z0-9]* { return text() }
+Identificador = [a-zA-Z_][a-zA-Z0-9_]* { return text() }
 
 _ = ([ \t\n\r] / Comentarios)* 
 
