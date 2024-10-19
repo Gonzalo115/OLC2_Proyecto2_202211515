@@ -412,7 +412,7 @@ export class CompilerVisitor extends BaseVisitor {
         if (node.exp != null) {
             node.exp.accept(this);
         } else {
-
+            //this.code.pushConstant({ type: node.tipo, valo: r.ZERO });
             switch (node.tipo) {
                 case 'int':
                     this.code.pushConstant({ type: node.tipo, valor: 0 });
@@ -491,48 +491,52 @@ export class CompilerVisitor extends BaseVisitor {
 
         const [offsetAux, variableObjectAux] = this.code.getObject(node.id);
 
+        // Obtener el valor de la variable
+        this.code.addi(r.T0, r.SP, offsetAux);
+        this.code.lw(r.T1, r.T0);
+        this.code.push(r.T1);
+        this.code.pushObject({ ...variableObjectAux, id: undefined });
+
         var valueObject;
 
         if (variableObjectAux.type === 'int') {
-            this.code.addi(r.T0, r.SP, offsetAux);
-            this.code.lw(r.T1, r.T0);
-            this.code.push(r.T1);
-            this.code.pushObject({ type: 'int', length: 4 });
+            this.code.comment(`Calculando el nuevo valor que se le asiganara a la variable`);
             this.code.popObject(r.T1);
             this.code.popObject(r.T0);
             this.code.add(r.T0, r.T1, r.T0);
             this.code.push(r.T0);
             this.code.pushObject({ type: 'int', length: 4 });
             valueObject = this.code.popObject(r.T0)
-        } else if (variableObjectAux.type === 'float') {
-            this.code.addi(r.T0, r.SP, offsetAux);
-            this.code.lw(r.T1, r.T0);
-            this.code.fcvtsw(f.FT1, r.T1);
-            this.code.pushFloat(f.FT1);
-            this.code.pushObject({ type: 'float', length: 4 });
-            this.code.popObject(f.FT1);
 
+            this.code.comment(`Agregando el nuevo valor de la variable`);
+            const [offset, variableObject] = this.code.getObject(node.id);
+            this.code.addi(r.T1, r.SP, offset);
+            this.code.sw(r.T0, r.T1);
+            variableObject.type = valueObject.type;
+            this.code.push(r.T0);
+
+        } else if (variableObjectAux.type === 'float') {
+            this.code.comment(`Calculando el nuevo valor que se le asiganara a la variable`);
+            this.code.popObject(f.FT1);
             const isFloat = this.code.getTopObject().type === 'float';
             this.code.popObject(isFloat ? f.FT0 : r.T0);
             if (!isFloat) this.code.fcvtsw(f.FT0, r.T0);
-            
             this.code.fadd(f.FT0, f.FT1, f.FT0);
             this.code.pushFloat(f.FT0);
             this.code.pushObject({ type: 'float', length: 4 });
             valueObject = this.code.popObject(f.FT0)
+
+
+            this.code.comment(`Agregando el nuevo valor de la variable`);
+            const [offset, variableObject] = this.code.getObject(node.id);
+            this.code.addi(r.T1, r.SP, offset);
+            this.code.fsw(f.FT0, r.T1);
+            variableObject.type = valueObject.type;
+            this.code.pushFloat(f.FT0);
         }
 
 
-        const [offset, variableObject] = this.code.getObject(node.id);
-
-        this.code.addi(r.T1, r.SP, offset);
-        this.code.sw(r.T0, r.T1);
-
-        variableObject.type = valueObject.type;
-
-        this.code.push(r.T0);
         this.code.pushObject(valueObject);
-
         this.code.comment(`Fin Incremento Variable: ${node.id}`);
     }
 
@@ -541,54 +545,59 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitDecremento']}
     */
     visitDecremento(node) {
-        this.code.comment(`Decremento Variable: ${node.id}`);
+        this.code.comment(`Incremente Variable: ${node.id}`);
 
         node.valor.accept(this);
 
         const [offsetAux, variableObjectAux] = this.code.getObject(node.id);
 
+        // Obtener el valor de la variable
+        this.code.addi(r.T0, r.SP, offsetAux);
+        this.code.lw(r.T1, r.T0);
+        this.code.push(r.T1);
+        this.code.pushObject({ ...variableObjectAux, id: undefined });
+
         var valueObject;
 
         if (variableObjectAux.type === 'int') {
-            this.code.addi(r.T0, r.SP, offsetAux);
-            this.code.lw(r.T1, r.T0);
-            this.code.push(r.T1);
-            this.code.pushObject({ type: 'int', length: 4 });
+            this.code.comment(`Calculando el nuevo valor que se le asiganara a la variable`);
             this.code.popObject(r.T1);
             this.code.popObject(r.T0);
             this.code.sub(r.T0, r.T1, r.T0);
             this.code.push(r.T0);
             this.code.pushObject({ type: 'int', length: 4 });
             valueObject = this.code.popObject(r.T0)
+
+            this.code.comment(`Agregando el nuevo valor de la variable`);
+            const [offset, variableObject] = this.code.getObject(node.id);
+            this.code.addi(r.T1, r.SP, offset);
+            this.code.sw(r.T0, r.T1);
+            variableObject.type = valueObject.type;
+            this.code.push(r.T0);
+
         } else if (variableObjectAux.type === 'float') {
-            this.code.addi(r.T0, r.SP, offsetAux);
-            this.code.lw(r.T1, r.T0);
-            this.code.push(r.T1);
-            this.code.pushObject({ type: 'float', length: 4 });
+            this.code.comment(`Calculando el nuevo valor que se le asiganara a la variable`);
             this.code.popObject(f.FT1);
-
-            var ObjAux = this.code.getTopObject().type === 'float';
-            this.code.popObject(ObjAux ? f.FT0 : r.T0);
-            if (!ObjAux) this.code.fcvtsw(f.FT0, r.T0);
-
+            const isFloat = this.code.getTopObject().type === 'float';
+            this.code.popObject(isFloat ? f.FT0 : r.T0);
+            if (!isFloat) this.code.fcvtsw(f.FT0, r.T0);
             this.code.fsub(f.FT0, f.FT1, f.FT0);
             this.code.pushFloat(f.FT0);
             this.code.pushObject({ type: 'float', length: 4 });
             valueObject = this.code.popObject(f.FT0)
+
+
+            this.code.comment(`Agregando el nuevo valor de la variable`);
+            const [offset, variableObject] = this.code.getObject(node.id);
+            this.code.addi(r.T1, r.SP, offset);
+            this.code.fsw(f.FT0, r.T1);
+            variableObject.type = valueObject.type;
+            this.code.pushFloat(f.FT0);
         }
 
 
-        const [offset, variableObject] = this.code.getObject(node.id);
-
-        this.code.addi(r.T1, r.SP, offset);
-        this.code.sw(r.T0, r.T1);
-
-        variableObject.type = valueObject.type;
-
-        this.code.push(r.T0);
         this.code.pushObject(valueObject);
-
-        this.code.comment(`Fin Decremento Variable: ${node.id}`);
+        this.code.comment(`Fin Incremento Variable: ${node.id}`);
     }
 
 
