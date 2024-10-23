@@ -3392,7 +3392,8 @@ function peg$parse(input, options) {
       'return':               nodos.Return,
       'llamada':              nodos.Llamada,
       'dclFunc':              nodos.FuncDcl,
-      'parametro':            nodos.Parametro
+      'parametro':            nodos.Parametro,
+      'llamadaEmbebidas':     nodos.Parametro
     }
 
     const nodo = new tipos[tipoNodo](props)

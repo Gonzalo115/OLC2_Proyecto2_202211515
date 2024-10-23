@@ -26,6 +26,7 @@ export class Generador {
     constructor() {
         this.instrucciones = []
         this.objectStack = []
+        this.instrucionesDeFunciones = []
         this.depth = 0
         this._usedBuiltins = new Set()
         this._labelCounter = 0;
@@ -39,6 +40,10 @@ export class Generador {
         label = label || this.getLabel()
         this.instrucciones.push(new Instruction(`${label}:`))
         return label
+    }
+
+    mv(rd, rs1){
+        this.instrucciones.push(new Instruction('mv', rd, rs1))
     }
 
     add(rd, rs1, rs2) {
@@ -117,6 +122,10 @@ export class Generador {
         this.instrucciones.push(new Instruction('li', rd, inmediato))
     }
 
+    la(rd, label) {
+        this.instrucciones.push(new Instruction('la', rd, label))
+    }
+
     push(rd = r.T0) {
         this.addi(r.SP, r.SP, -4) // 4 bytes = 32 bits
         this.sw(rd, r.SP)
@@ -140,6 +149,10 @@ export class Generador {
         this.instrucciones.push(new Instruction('jal', label))
     }
 
+    jalr(rd, rs1, imm) {
+        this.instrucciones.push(new Instruction('jalr', rd, rs1, imm))
+    }
+
     j(label) {
         this.instrucciones.push(new Instruction('j', label))
     }
@@ -160,6 +173,14 @@ export class Generador {
         this.jal(builtinName)
     }
 
+    callBuiltinAux(builtinName) {
+        if (!builtins[builtinName]) {
+            throw new Error(`Builtin ${builtinName} not found`)
+        }
+        this._usedBuiltins.add(builtinName)
+    }
+
+
     printInt(rd = r.A0) {
 
         if (rd !== r.A0) {
@@ -168,6 +189,35 @@ export class Generador {
         }
 
         this.li(r.A7, 1)
+        this.ecall()
+
+        if (rd !== r.A0) {
+            this.pop(r.A0)
+        }
+
+    }
+
+    printBoolean(rd = r.A0) {
+
+        if (rd !== r.A0) {
+            this.push(r.A0)
+            this.add(r.A0, rd, r.ZERO)
+        }
+
+        const trueLabel = this.getLabel();
+        const endLabel = this.getLabel();
+
+        this.beq(r.A0, r.ZERO, trueLabel);
+        this.pushConstant({ type: 'string', valor: 'true' });
+        this.popObject(r.A0);
+        this.j(endLabel);
+        this.addLabel(trueLabel);
+        this.pushConstant({ type: 'string', valor: 'false' });
+        this.popObject(r.A0);
+
+        this.addLabel(endLabel);
+
+        this.li(r.A7, 4)
         this.ecall()
 
         if (rd !== r.A0) {
@@ -221,7 +271,7 @@ export class Generador {
             case 'string':
                 const stringArray = stringTo1ByteArray(object.valor);
 
-                this.comment(`Pushing string ${object.valor}`);
+                this.comment(`Pushing string`);
                 this.push(r.HP);
 
                 stringArray.forEach((charCode) => {
@@ -341,6 +391,10 @@ export class Generador {
         this.endProgram()
         this.comment('Builtins')
 
+        this.comment('Funciones foraneas')
+        this.instrucionesDeFunciones.forEach(instruccion => this.instrucciones.push(instruccion))
+
+
         Array.from(this._usedBuiltins).forEach(builtinName => {
             this.addLabel(builtinName)
             builtins[builtinName](this)
@@ -386,6 +440,10 @@ main:
         this.instrucciones.push(new Instruction('fmv.s', rd, rs1))
     }
 
+    fmvWX(rd, rs1) {
+        this.instrucciones.push(new Instruction('fmv.w.x', rd, rs1))
+    }
+
     flw(rd, rs1, inmediato = 0) {
         this.instrucciones.push(new Instruction('flw', rd, `${inmediato}(${rs1})`))
     }
@@ -396,6 +454,10 @@ main:
 
     fcvtsw(rd, rs1) {
         this.instrucciones.push(new Instruction('fcvt.s.w', rd, rs1))
+    }
+
+    fcvtws(rd, rs1) {
+        this.instrucciones.push(new Instruction('fcvt.w.s', rd, rs1, 'rtz'))
     }
 
     // ==
@@ -418,6 +480,11 @@ main:
     printFloat() {
         this.li(r.A7, 2)
         this.ecall()
+    }
+
+    getFrameLocal(index) {
+        const frameRelativeLocal = this.objectStack.filter(obj => obj.type === 'local');
+        return frameRelativeLocal[index];
     }
 
 

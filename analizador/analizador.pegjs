@@ -29,7 +29,8 @@
       'return':               nodos.Return,
       'llamada':              nodos.Llamada,
       'dclFunc':              nodos.FuncDcl,
-      'parametro':            nodos.Parametro
+      'parametro':            nodos.Parametro,
+      'llamadaEmbebidas':     nodos.Parametro
     }
 
     const nodo = new tipos[tipoNodo](props)
@@ -181,8 +182,8 @@ Multiplicacion = exp_left:Unaria expansion:(
 
 Unaria =_ operacion:("-" / "!") _ num:Unaria _ { return crearNodo('OperacionU', { operacion: operacion, exp_unica: num }) }
 / LlamadaEs
+/// LlamadaEmbebidas
 / Llamada
-
 
 Llamada = callee:Nativo _ params:("(" args:Argumentos? ")" { return args })* {
   return params.reduce(

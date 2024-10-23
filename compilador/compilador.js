@@ -1,3 +1,5 @@
+import { FrameVisitor } from "./frame.js";
+import { ReferenciaVariable } from "./nodos.js";
 import { registers as r, floatRegisters as f } from "../risc/constantes.js";
 import { Generador } from "../risc/generador.js";
 import { BaseVisitor } from "./visitor.js";
@@ -11,6 +13,11 @@ export class CompilerVisitor extends BaseVisitor {
 
         this.continueLabel = null;
         this.breakLabel = null;
+
+        this.functionMetada = {}
+        this.insideFunction = false;
+        this.frameDclIndex = 0;
+        this.returnLabel = null;
     }
 
 
@@ -129,9 +136,10 @@ export class CompilerVisitor extends BaseVisitor {
 
                 if (unica.type === 'float') {
                     const ieee754 = numberToF32(0);
-                    this.code.flw(f.FT1, ieee754);
+                    this.code.li(r.T0, ieee754);
+                    this.code.fcvtsw(f.FT1, r.T0);
                     this.code.fsub(f.FT0, f.FT1, f.FT0);
-                    this.code.push(f.FT0);
+                    this.code.pushFloat(f.FT0);
                     this.code.pushObject({ type: 'float', length: 4 });
                 }
 
@@ -411,6 +419,21 @@ export class CompilerVisitor extends BaseVisitor {
 
         if (node.exp != null) {
             node.exp.accept(this);
+
+            if (this.insideFunction) {
+                const localObject = this.code.getFrameLocal(this.frameDclIndex);
+                const valueObj = this.code.popObject(r.T0);
+
+                this.code.addi(r.T1, r.FP, -localObject.offset * 4);
+                this.code.sw(r.T0, r.T1);
+
+                // ! inferir el tipo
+                localObject.type = valueObj.type;
+                this.frameDclIndex++;
+
+                return
+            }
+
         } else {
             //this.code.pushConstant({ type: node.tipo, valo: r.ZERO });
             switch (node.tipo) {
@@ -455,6 +478,13 @@ export class CompilerVisitor extends BaseVisitor {
 
         const [offset, variableObject] = this.code.getObject(node.id);
 
+
+        if (this.insideFunction) {
+            this.code.addi(r.T1, r.FP, -variableObject.offset * 4); // ! REVISAR
+            this.code.sw(r.T0, r.T1); // ! revisar
+            return
+        }
+
         this.code.addi(r.T1, r.SP, offset);
         this.code.sw(r.T0, r.T1);
 
@@ -473,6 +503,15 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.comment(`Referencia Variable: ${node.id}`);
 
         const [offset, variableObject] = this.code.getObject(node.id);
+
+        if (this.insideFunction) {
+            this.code.addi(r.T1, r.FP, -variableObject.offset * 4);
+            this.code.lw(r.T0, r.T1);
+            this.code.push(r.T0);
+            this.code.pushObject({ ...variableObject, id: undefined });
+            return
+        }
+
         this.code.addi(r.T0, r.SP, offset);
         this.code.lw(r.T1, r.T0);
         this.code.push(r.T1);
@@ -614,7 +653,7 @@ export class CompilerVisitor extends BaseVisitor {
         const tipoPrint = {
             'int': () => this.code.printInt(),
             'float': () => this.code.printFloat(),
-            'boolean': () => this.code.printInt(),
+            'boolean': () => this.code.printBoolean(),
             'string': () => this.code.printString(),
             'char': () => this.code.printString()
         }
@@ -631,7 +670,70 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitExpresionPrintln']}
     */
     visitExpresionPrintln(node) {
-        throw new Error('Metodo visitExpresionPrintln no implementado');
+        node.exp_right.accept(this); // izq | der
+        const isDerFloat = this.code.getTopObject().type === 'float';
+        const der = this.code.popObject(isDerFloat ? f.FT0 : r.T0); // der
+
+
+        switch (der.type) {
+            case 'int':
+                this.code.callBuiltin('FtoStringI');
+                this.code.callBuiltinAux('AuxtoStringI');//Generalizar para transformar los enteros en cadenas
+                this.code.callBuiltinAux('concatString');//Nos servira para concatener las cadenas
+                break
+            case 'float':
+                this.code.callBuiltin('FtoStringF');
+                this.code.callBuiltinAux('AuxtoStringI');//Generalizar para transformar los enteros en cadenas
+                this.code.callBuiltinAux('concatString');//Nos servira para concatener las cadenas
+                break
+            case 'boolean':
+                this.code.callBuiltin('FtoStringB');
+                break
+            case 'char':
+                this.code.add(r.A0, r.ZERO, r.T0);
+                this.code.callBuiltin('FtoStringC');
+                break
+            case 'string':
+                this.code.push(r.T0);
+                break
+        }
+        this.code.pushObject({ type: 'string', length: 4 });
+
+
+        node.exp_left.accept(this); // izq |
+        const isIzqFloat = this.code.getTopObject().type === 'float';
+        const izq = this.code.popObject(isIzqFloat ? f.FT0 : r.T0); // izq
+
+        switch (izq.type) {
+            case 'int':
+                this.code.callBuiltin('FtoStringI');
+                this.code.callBuiltinAux('AuxtoStringI');//Generalizar para transformar los enteros en cadenas
+                this.code.callBuiltinAux('concatString');//Nos servira para concatener las cadenas
+                break
+            case 'float':
+                this.code.callBuiltin('FtoStringF');
+                this.code.callBuiltinAux('AuxtoStringI');//Generalizar para transformar los enteros en cadenas
+                this.code.callBuiltinAux('concatString');//Nos servira para concatener las cadenas
+                break
+            case 'boolean':
+                this.code.callBuiltin('FtoStringB');
+                break
+            case 'char':
+                this.code.add(r.A0, r.ZERO, r.T0);
+                this.code.callBuiltin('FtoStringC');
+                break
+            case 'string':
+                this.code.push(r.T0);
+                break
+        }
+        this.code.pushObject({ type: 'string', length: 4 });
+
+
+        this.code.pop(r.A0)
+        this.code.pop(r.A1)
+
+        this.code.callBuiltin('concatString');
+        this.code.pushObject({ type: 'string', length: 4 });
     }
 
     /**
@@ -906,7 +1008,20 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitReturn']}
     */
     visitReturn(node) {
-        throw new Error('Metodo visitReturn no implementado');
+        this.code.comment('Inicio Return');
+
+        if (node.exp) {
+            node.exp.accept(this);
+            this.code.popObject(r.A0);
+
+            const frameSize = this.functionMetada[this.insideFunction].frameSize
+            const returnOffest = frameSize - 1;
+            this.code.addi(r.T0, r.FP, -returnOffest * 4)
+            this.code.sw(r.A0, r.T0)
+        }
+
+        this.code.j(this.returnLabel);
+        this.code.comment('Final Return');
     }
 
 
@@ -914,7 +1029,119 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitLlamada']}
     */
     visitLlamada(node) {
-        throw new Error('Metodo visitLlamada no implementado');
+        if (!(node.callee instanceof ReferenciaVariable)) return
+
+        const nombreFuncion = node.callee.id;
+
+        if ((nombreFuncion === "parseInt") || (nombreFuncion === "parsefloat") || (nombreFuncion === "toString") || (nombreFuncion === "toLowerCase") || (nombreFuncion === "toUpperCase") || (nombreFuncion === "toUpperCase") || (nombreFuncion === "typeof")) {
+            this.code.comment(` Llamada de la funcion Embebida`);
+
+            node.args[0].accept(this)
+            const isFloat = this.code.getTopObject().type === 'float';
+            const param = this.code.popObject(isFloat ? f.FT0 : r.T0);
+
+            switch (nombreFuncion) {
+                case "parseInt":
+                    this.code.add(r.A0, r.ZERO, r.T0);
+                    this.code.callBuiltin('FparseInt');
+                    this.code.pushObject({ type: 'int', length: 4 });
+                    break;
+                case "parsefloat":
+                    this.code.add(r.A0, r.ZERO, r.T0);
+                    this.code.callBuiltin('Fparsefloat');
+                    this.code.pushObject({ type: 'float', length: 4 });
+                    break;
+                case "toString":
+                    switch (param.type) {
+                        case 'int':
+                            this.code.callBuiltin('FtoStringI');
+                            this.code.callBuiltinAux('AuxtoStringI');//Generalizar para transformar los enteros en cadenas
+                            this.code.callBuiltinAux('concatString');//Nos servira para concatener las cadenas
+                            break
+                        case 'float':
+                            this.code.callBuiltin('FtoStringF');
+                            this.code.callBuiltinAux('AuxtoStringI');//Generalizar para transformar los enteros en cadenas
+                            this.code.callBuiltinAux('concatString');//Nos servira para concatener las cadenas
+                            break
+                        case 'boolean':
+                            this.code.callBuiltin('FtoStringB');
+                            break
+                        case 'char':
+                            this.code.add(r.A0, r.ZERO, r.T0);
+                            this.code.callBuiltin('FtoStringC');
+                            break
+                    }
+                    this.code.pushObject({ type: 'string', length: 4 });
+                    break;
+                case "toLowerCase":
+                    this.code.add(r.A0, r.ZERO, r.T0);
+                    this.code.callBuiltin('FtoLowerCase');
+                    this.code.pushObject({ type: 'string', length: 4 });
+                    break;
+                case "toUpperCase":
+                    this.code.add(r.A0, r.ZERO, r.T0);
+                    this.code.callBuiltin('FtoUpperCase');
+                    this.code.pushObject({ type: 'string', length: 4 });
+                    break;
+                case "typeof":
+                    this.code.pushConstant({ type: 'string', valor: param.type });
+                    break;
+            }
+
+            this.code.comment(` Fin de la llamada de la funcion Embebida`);
+            return;
+        }
+
+        this.code.comment(`Llamada a funcion ${nombreFuncion}`);
+
+        const etiquetaRetornoLlamada = this.code.getLabel();
+
+        // 1. Guardar los argumentos
+        node.args.forEach((arg, index) => {
+            arg.accept(this)
+            this.code.popObject(r.T0)
+            this.code.addi(r.T1, r.SP, -4 * (3 + index)) // ! REVISAR
+            this.code.sw(r.T0, r.T1)
+        });
+
+        // Calcular la dirección del nuevo FP en T1
+        this.code.addi(r.T1, r.SP, -4)
+
+        // Guardar direccion de retorno
+        this.code.la(r.T0, etiquetaRetornoLlamada)
+        this.code.push(r.T0)
+
+        // Guardar el FP
+        this.code.push(r.FP)
+        this.code.addi(r.FP, r.T1, 0)
+
+        // colocar el SP al final del frame
+        // this.code.addi(r.SP, r.SP, -(this.functionMetada[nombreFuncion].frameSize - 4))
+        this.code.addi(r.SP, r.SP, -(node.args.length * 4)) // ! REVISAR
+
+
+        // Saltar a la función
+        this.code.j(nombreFuncion)
+        this.code.addLabel(etiquetaRetornoLlamada)
+
+        // Recuperar el valor de retorno
+        const frameSize = this.functionMetada[nombreFuncion].frameSize
+        const returnSize = frameSize - 1;
+        this.code.addi(r.T0, r.FP, -returnSize * 4)
+        this.code.lw(r.A0, r.T0)
+
+        // Regresar el FP al contexto de ejecución anterior
+        this.code.addi(r.T0, r.FP, -4)
+        this.code.lw(r.FP, r.T0)
+
+        // Regresar mi SP al contexto de ejecución anterior
+        this.code.addi(r.SP, r.SP, (frameSize - 1) * 4)
+
+
+        this.code.push(r.A0)
+        this.code.pushObject({ type: this.functionMetada[nombreFuncion].returnType, length: 4 })
+
+        this.code.comment(`Fin de llamada a funcion ${nombreFuncion}`);
     }
 
 
@@ -922,17 +1149,78 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitFuncDcl']}
     */
     visitFuncDcl(node) {
-        throw new Error('Metodo visitFuncDcl no implementado');
+        const baseSize = 2;
+        //Reservar los espacion de memoria para los parametros
+        const paramSize = node.params.length;
+        //Reservar los escacios para las declaraciones en la funcion
+        const frameVisitor = new FrameVisitor(baseSize + paramSize);
+        node.bloque.accept(frameVisitor);
+        const localFrame = frameVisitor.frame;
+        const localSize = localFrame.length;
+
+        const returnSize = 1;
+        const totalSize = baseSize + paramSize + localSize + returnSize;
+        this.functionMetada[node.id] = {
+            frameSize: totalSize,
+            returnType: node.tipo,
+        }
+
+        const instruccionesDeMain = this.code.instrucciones;
+        const instruccionesDeDeclaracionDeFuncion = []
+        this.code.instrucciones = instruccionesDeDeclaracionDeFuncion;
+
+        node.params.forEach((param, index) => {
+            this.code.pushObject({
+                id: param.id,
+                type: param.tipo,
+                length: 4,
+                offset: baseSize + index
+            })
+        });
+
+        localFrame.forEach(variableLocal => {
+            this.code.pushObject({
+                ...variableLocal,
+                length: 4,
+                type: 'local',
+            })
+        });
+
+        this.insideFunction = node.id;
+        this.frameDclIndex = 0;
+        this.returnLabel = this.code.getLabel();
+
+        this.code.comment(`Declaracion de funcion ${node.id}`);
+        this.code.addLabel(node.id);
+
+        node.bloque.accept(this);
+
+        this.code.addLabel(this.returnLabel);
+
+        this.code.add(r.T0, r.ZERO, r.FP);
+        this.code.lw(r.RA, r.T0);
+        this.code.jalr(r.ZERO, r.RA, 0);
+        this.code.comment(`Fin de declaracion de funcion ${node.id}`);
+
+
+        // Limpiar metadatos
+        for (let i = 0; i < paramSize + localSize; i++) {
+            this.code.objectStack.pop();
+        }
+
+        this.code.instrucciones = instruccionesDeMain
+
+        instruccionesDeDeclaracionDeFuncion.forEach(instruccion => {
+            this.code.instrucionesDeFunciones.push(instruccion);
+        });
     }
 
-
     /**
-      * @type {BaseVisitor['visitParametro']}
+    * @type {BaseVisitor['visitParametro']}
     */
     visitParametro(node) {
         throw new Error('Metodo visitParametro no implementado');
     }
-
 
 
 }
