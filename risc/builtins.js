@@ -5,7 +5,7 @@ import { stringTo1ByteArray, numberToF32 } from "./utils.js";
 /**
  * @param {Generador} code
  */
-export const concatString = (code) => {
+export const concatString = (code) => { 
     // A0 -> dirección en heap de la primera cadena
     // A1 -> dirección en heap de la segunda cadena
     // result -> push en el stack la dirección en heap de la cadena concatenada
@@ -51,6 +51,7 @@ export const equalString = (code) => {
 
     //Agregar las etiquetas
     const end1 = code.getLabel()
+    const end2 = code.getLabel()
     const true1 = code.getLabel()
     const loop1 = code.addLabel()
 
@@ -63,28 +64,26 @@ export const equalString = (code) => {
 
     //Si llego aqui es que no son iguales
     code.li(r.T0, 0);
-    code.push(r.T0);
+
     code.j(end1)
 
     //Etiqueta es verdadera
     code.addLabel(true1)
-
-    code.li(r.T0, 1);
-    code.push(r.T0);
+    
 
     //Si uno es fin de cadena y como son iguales aun entonces esque se termino la comparacion
-    code.beq(r.T1, r.ZERO, end1)
+    code.beq(r.T1, r.ZERO, end2)
 
 
     //Mover el puntero al siguiente caracter
     code.addi(r.A0, r.A0, 1)
     code.addi(r.A1, r.A1, 1)
 
-
-
     code.j(loop1)
+    code.addLabel(end2)
+    code.li(r.T0, 1);
     code.addLabel(end1)
-
+    code.push(r.T0);
 }
 
 /**
@@ -108,14 +107,12 @@ export const notEqualString = (code) => {
 
     //Si llego aqui es que no son iguales los caracteres
     code.li(r.T0, 1);
-    code.push(r.T0);
     code.j(end1)
 
     //Etiqueta es verdadera
     code.addLabel(false1)
 
     code.li(r.T0, 0);
-    code.push(r.T0);
 
     //Si uno es fin de cadena y como son iguales aun entonces esque se termino la comparacion
     code.beq(r.T1, r.ZERO, end1)
@@ -129,6 +126,7 @@ export const notEqualString = (code) => {
 
     code.j(loop1)
     code.addLabel(end1)
+    code.push(r.T0);
 
 }
 
@@ -145,7 +143,7 @@ export const equalInt = (code) => {
 
     //Si ha llegado hasta aui significa que era falso lo anterior y guardar en t0 false
     code.li(r.T0, 0);
-    code.push(r.T0);
+    
 
     //salto hasta etiqueta de finalizacion
     code.j(labelEnd);
@@ -153,11 +151,11 @@ export const equalInt = (code) => {
     //label true
     code.addLabel(labelTrue);
     code.li(r.T0, 1);
-    code.push(r.T0);
 
     //label finalizacion
     code.addLabel(labelEnd);
     code.fadd(f.FT0, f.FT1, f.FT0);
+    code.push(r.T0);
 }
 
 /**
@@ -173,7 +171,7 @@ export const notEqualInt = (code) => {
 
     //Si ha llegado hasta aqui significa que era falso lo anterior y guardar en t0 false
     code.li(r.T0, 0);
-    code.push(r.T0);
+    
 
     //salto hasta etiqueta de finalizacion
     code.j(labelEnd);
@@ -181,10 +179,11 @@ export const notEqualInt = (code) => {
     //label true
     code.addLabel(labelTrue);
     code.li(r.T0, 1);
-    code.push(r.T0);
+    
 
     //label finalizacion
     code.addLabel(labelEnd);
+    code.push(r.T0);
 }
 
 /**
@@ -217,7 +216,7 @@ export const minMayI = (code) => {
 
     //Si ha llegado hasta aui significa que era falso lo anterior y guardar en t0 false
     code.li(r.T0, 0);
-    code.push(r.T0);
+    
 
     //salto hasta etiqueta de finalizacion
     code.j(labelEnd);
@@ -225,10 +224,11 @@ export const minMayI = (code) => {
     //label true
     code.addLabel(labelTrue);
     code.li(r.T0, 1);
-    code.push(r.T0);
+
 
     //label finalizacion
     code.addLabel(labelEnd);
+    code.push(r.T0);
 }
 
 
@@ -248,7 +248,6 @@ export const minMayC = (code) => {
 
     //Si ha llegado hasta aui significa que era falso lo anterior y guardar en t0 false
     code.li(r.T0, 0);
-    code.push(r.T0);
 
     //salto hasta etiqueta de finalizacion
     code.j(labelEnd);
@@ -256,10 +255,10 @@ export const minMayC = (code) => {
     //label true
     code.addLabel(labelTrue);
     code.li(r.T0, 1);
-    code.push(r.T0);
 
     //label finalizacion
     code.addLabel(labelEnd);
+    code.push(r.T0);
 }
 
 
@@ -276,7 +275,6 @@ export const minMaEqI = (code) => {
 
     //Si ha llegado hasta aui significa que era falso lo anterior y guardar en t0 false
     code.li(r.T0, 0);
-    code.push(r.T0);
 
     //salto hasta etiqueta de finalizacion
     code.j(labelEnd);
@@ -284,10 +282,10 @@ export const minMaEqI = (code) => {
     //label true
     code.addLabel(labelTrue);
     code.li(r.T0, 1);
-    code.push(r.T0);
 
     //label finalizacion
     code.addLabel(labelEnd);
+    code.push(r.T0);
 }
 
 
@@ -307,7 +305,6 @@ export const minMaEqC = (code) => {
 
     //Si ha llegado hasta aui significa que era falso lo anterior y guardar en t0 false
     code.li(r.T0, 0);
-    code.push(r.T0);
 
     //salto hasta etiqueta de finalizacion
     code.j(labelEnd);
@@ -315,10 +312,10 @@ export const minMaEqC = (code) => {
     //label true
     code.addLabel(labelTrue);
     code.li(r.T0, 1);
-    code.push(r.T0);
 
     //label finalizacion
     code.addLabel(labelEnd);
+    code.push(r.T0);
 }
 
 /**
@@ -338,6 +335,8 @@ export const FparseInt = (code) => {
 
     //Creando las etiquetas de salto
     const end1 = code.getLabel()
+    const end2 = code.getLabel()
+    const fueraRango = code.getLabel()
     const loop1 = code.getLabel()
 
     //Validar si es negativo el numero
@@ -361,7 +360,12 @@ export const FparseInt = (code) => {
     code.li(r.T3, 46)
     code.beq(r.T2, r.T3, end1)
 
-    //En teoria la cadena que estamos convirtiendo a entero no tiene caracteres que no sean numeros 
+    //En teoria la cadena que estamos convirtiendo a entero no tiene caracteres que no sean numeros al final si puede venir :)))
+
+    code.li(r.T3, 48)
+    code.blt(r.T2, r.T3, fueraRango)
+    code.li(r.T3, 57)
+    code.blt(r.T3, r.T2, fueraRango)
 
     //Le restamos 48 ya que haremos que el ascci que van del 48 - 57 se convierta en el numero literal que reprsenta su ascii
     code.li(r.T3, 48)
@@ -382,6 +386,24 @@ export const FparseInt = (code) => {
     code.addLabel(end1)
     code.mul(r.T0, r.T0, r.T1)
     code.push(r.T0)
+    code.j(end2)
+    code.addLabel(fueraRango)
+    code.push(r.HP)
+    const stringArrayError = stringTo1ByteArray("error de conversion");
+    stringArrayError.forEach((charCode) => {
+        code.li(r.T0, charCode);
+        code.sb(r.T0, r.HP);
+        code.addi(r.HP, r.HP, 1);
+    });
+    code.pop(r.A0)
+    code.li(r.A7, 4)
+    code.ecall()
+    code.li(r.A0, 10)
+    code.li(r.A7, 11)
+    code.ecall()
+    code.li(r.T0, 0)
+    code.push(r.T0)
+    code.addLabel(end2)
 }
 
 /**
@@ -415,6 +437,8 @@ export const Fparsefloat = (code) => {
     const loop1 = code.getLabel()
     const loop2 = code.getLabel()
 
+    const fueraRango = code.getLabel()
+
     //EVALUAR SI ES NEGATIVO
     code.lb(r.T2, r.A0)
     code.li(r.T3, 45)
@@ -436,7 +460,11 @@ export const Fparsefloat = (code) => {
     code.li(r.T3, 46)
     code.beq(r.T2, r.T3, loop2)
 
-    //En teoria la cadena que estamos convirtiendo a entero no tiene caracteres que no sean numeros 
+    //En teoria la cadena que estamos convirtiendo a entero no tiene caracteres que no sean numeros
+    code.li(r.T3, 48)
+    code.blt(r.T2, r.T3, fueraRango)
+    code.li(r.T3, 57)
+    code.blt(r.T3, r.T2, fueraRango)
 
     //Le restamos 48 ya que haremos que el ascci que van del 48 - 57 se convierta en el numero literal que reprsenta su ascii
     code.li(r.T3, 48)
@@ -473,6 +501,13 @@ export const Fparsefloat = (code) => {
     //Si es cero entonces sigfica que ha llegado a el final de la cadena
     code.beq(r.T2, r.ZERO, end2)
 
+    //En teoria la cadena que estamos convirtiendo a entero no tiene caracteres que no sean numeros
+    code.li(r.T3, 48)
+    code.blt(r.T2, r.T3, fueraRango)
+    code.li(r.T3, 57)
+    code.blt(r.T3, r.T2, fueraRango)
+
+
     //Le restamos 48 ya que haremos que el ascci que van del 48 - 57 se convierta en el numero literal que reprsenta su ascii
     code.li(r.T3, 48)
     code.sub(r.T2, r.T2, r.T3)
@@ -494,6 +529,25 @@ export const Fparsefloat = (code) => {
     code.fmul(f.FT0, f.FT0, f.FT2)
     code.fadd(f.FT0, f.FT0, f.FT1)
     code.pushFloat(f.FT0)
+    code.j(end3)
+
+    //Si exitiera un error.....
+    code.addLabel(fueraRango)
+    code.push(r.HP)
+    const stringArrayError = stringTo1ByteArray("error de conversion");
+    stringArrayError.forEach((charCode) => {
+        code.li(r.T0, charCode);
+        code.sb(r.T0, r.HP);
+        code.addi(r.HP, r.HP, 1);
+    });
+    code.pop(r.A0)
+    code.li(r.A7, 4)
+    code.ecall()
+    code.li(r.A0, 10)
+    code.li(r.A7, 11)
+    code.ecall()
+    code.li(r.T0, 0)
+    code.push(r.T0)
 
     //REGRESAR
     code.addLabel(end3)

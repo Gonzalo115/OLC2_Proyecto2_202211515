@@ -226,6 +226,25 @@ export class Generador {
 
     }
 
+    printNull(rd = r.A0) {
+
+        if (rd !== r.A0) {
+            this.push(r.A0)
+            this.add(r.A0, rd, r.ZERO)
+        }
+
+        this.pushConstant({ type: 'string', valor: 'null' });
+        this.popObject(r.A0);
+
+        this.li(r.A7, 4)
+        this.ecall()
+
+        if (rd !== r.A0) {
+            this.pop(r.A0)
+        }
+
+    }
+
     printString(rd = r.A0) {
 
         if (rd !== r.A0) {
@@ -252,6 +271,12 @@ export class Generador {
 
     pushConstant(object) {
         let length = 0;
+
+
+        if(object.valuenull){
+            this.pushObject({ type: object.type, length, depth: this.depth, valuenull: object.valuenull });
+            return
+        }
 
         switch (object.type) {
             case 'int':
@@ -293,7 +318,7 @@ export class Generador {
                 break;
         }
 
-        this.pushObject({ type: object.type, length, depth: this.depth });
+        this.pushObject({ type: object.type, length, depth: this.depth, valuenull: object.valuenull });
     }
 
     pushObject(object) {

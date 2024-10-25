@@ -438,18 +438,18 @@ export class CompilerVisitor extends BaseVisitor {
             //this.code.pushConstant({ type: node.tipo, valo: r.ZERO });
             switch (node.tipo) {
                 case 'int':
-                    this.code.pushConstant({ type: node.tipo, valor: 0 });
+                    this.code.pushConstant({ type: node.tipo, valor: 0, valuenull: 1 });
                     break
                 case 'float':
-                    this.code.pushConstant({ type: node.tipo, valor: 0 });
+                    this.code.pushConstant({ type: node.tipo, valor: 0, valuenull: 1 });
                     break
                 case 'char':
-                    this.code.pushConstant({ type: node.tipo, valor: '' });
+                    this.code.pushConstant({ type: node.tipo, valor: '',valuenull: 1 });
                     break
                 case 'string':
-                    this.code.pushConstant({ type: node.tipo, valor: "" });
+                    this.code.pushConstant({ type: node.tipo, valor: "", valuenull: 1 });
                 case 'boolean':
-                    this.code.pushConstant({ type: node.tipo, valor: true });
+                    this.code.pushConstant({ type: node.tipo, valor: true, valuenull: 1 });
                     break
             }
         }
@@ -489,6 +489,8 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.sw(r.T0, r.T1);
 
         variableObject.type = valueObject.type;
+        variableObject.valuenull = 0;
+        valueObject.valuenull = 0;
 
         this.code.push(r.T0);
         this.code.pushObject(valueObject);
@@ -649,16 +651,18 @@ export class CompilerVisitor extends BaseVisitor {
 
         const isFloat = this.code.getTopObject().type === 'float';
         const object = this.code.popObject(isFloat ? f.FA0 : r.A0);
-
-        const tipoPrint = {
-            'int': () => this.code.printInt(),
-            'float': () => this.code.printFloat(),
-            'boolean': () => this.code.printBoolean(),
-            'string': () => this.code.printString(),
-            'char': () => this.code.printString()
+        if(object.valuenull){
+            this.code.printNull()
+        }else{
+            const tipoPrint = {
+                'int': () => this.code.printInt(),
+                'float': () => this.code.printFloat(),
+                'boolean': () => this.code.printBoolean(),
+                'string': () => this.code.printString(),
+                'char': () => this.code.printString()
+            }
+            tipoPrint[object.type]();
         }
-
-        tipoPrint[object.type]();
 
         this.code.li(r.A0, 10)
         this.code.li(r.A7, 11)
@@ -780,7 +784,7 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.j(endTernarioLabel);
         this.code.addLabel(condFalsaLabel);
         this.code.comment('Si la condicion es falsa');
-        node.expTrue.accept(this);
+        node.expFalse.accept(this);
         this.code.addLabel(endTernarioLabel);
 
         this.code.comment('Fin de ternario');
