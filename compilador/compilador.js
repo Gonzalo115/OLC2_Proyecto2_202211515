@@ -1,8 +1,8 @@
 import { FrameVisitor } from "./frame.js";
-import { ReferenciaVariable } from "./nodos.js";
+import { ReferenciaVariable } from "../visitor/nodos.js";
 import { registers as r, floatRegisters as f } from "../risc/constantes.js";
 import { Generador } from "../risc/generador.js";
-import { BaseVisitor } from "./visitor.js";
+import { BaseVisitor } from "../visitor/visitor.js";
 import { numberToF32 } from "../risc/utils.js";
 
 export class CompilerVisitor extends BaseVisitor {

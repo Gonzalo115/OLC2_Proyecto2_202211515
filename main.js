@@ -1,10 +1,10 @@
 import { parse } from './analizador/analizador.js'
 import { CompilerVisitor } from './compilador/compilador.js'
-// import { InterpreterVisitor } from './visitor/interprete.js'
-// import { Errores } from './utils/errores.js'
-// import { FuncionForanea } from './visitor/foreanea.js'
-// import { FuncionNativa } from './visitor/embebidas.js'
-// import { DatoPrimitivo } from "./visitor/nodos.js";
+import { InterpreterVisitor } from './interprete/interprete.js'
+import { Errores } from './utils/errores.js'
+import { FuncionForanea } from './interprete/foreanea.js'
+import { FuncionNativa } from './interprete/embebidas.js'
+import { DatoPrimitivo } from "./visitor/nodos.js";
 
 
 const editor = document.getElementById('textAreaEditor')
@@ -20,70 +20,73 @@ var erroresLexiSintac = [];
 var entornosG = [];
 
 
-// Definición de la función de análisis semántico
-// function analisisSemantico(sentencias, interprete) {
-//     try {
-//         while (i < sentencias.length) {
-//             sentencias[i].accept(interprete);
-//             i++;
-//         }
-//         consola.value = interprete.salida;
-//     } catch (error) {
-//         if (error instanceof Errores) {
-//             erroresSemanticos.push(error);
-//             analisisSemantico(sentencias, interprete, i++)
-//         }
-//         console.log(error.message)
-//         return error
-//     }
+//Definición de la función de análisis semántico
+function analisisSemantico(sentencias, interprete) {
+    try {
+        while (i < sentencias.length) {
+            sentencias[i].accept(interprete);
+            i++;
+        }
+        //consola.value = interprete.salida;
+    } catch (error) {
+        if (error instanceof Errores) {
+            erroresSemanticos.push(error);
+            analisisSemantico(sentencias, interprete, i++)
+        }
+        console.log(error.message)
+        return error
+    }
 
-// }
+}
 
 
 
 btnAnalizar.addEventListener('click', () => {
+
+    const codigoFuente = editor.value
+
+
     // Interprete
 
-    // const codigoFuente = editor.value
 
-    // //Area de inicializacion
-    // i = 0;
-    // erroresSemanticos = [];
-    // erroresLexiSintac = [];
-    // entornosG         = [];
+    //Area de inicializacion
+    i = 0;
+    erroresSemanticos = [];
+    erroresLexiSintac = [];
+    entornosG         = [];
 
 
-    // try {
-    //     const sentencias = parse(codigoFuente)
-    //     const interprete = new InterpreterVisitor()
-    //     console.log({ sentencias })
-    //     analisisSemantico(sentencias, interprete, i)
-    //     entornosG.push(interprete.entornoActual);
-    // } catch (error) {
-    //     try {
-    //         var errorSintactico = new Errores(error.message, error.location.start.line, error.location.start.column)
-    //         erroresLexiSintac.push(errorSintactico);
-    //     } catch (errorr) {
-    //         console.log(error.message)
-    //     }
-    // }
+    try {
+        const sentencias = parse(codigoFuente)
+        const interprete = new InterpreterVisitor()
+        console.log({ sentencias })
+        analisisSemantico(sentencias, interprete, i)
+        entornosG.push(interprete.entornoActual);
+    } catch (error) {
+        try {
+            var errorSintactico = new Errores(error.message, error.location.start.line, error.location.start.column)
+            erroresLexiSintac.push(errorSintactico);
+        } catch (errorr) {
+            console.log(error.message)
+        }
+    }
 
 
     // Compilador
 
-    const codigoFuente = editor.value
+    
     try {
 
 
         const sentencias = parse(codigoFuente)
         // ast.innerHTML = JSON.stringify(sentencias, null, 2)
 
-        const interprete = new CompilerVisitor()
+        const compilador = new CompilerVisitor()
 
         console.log({ sentencias })
-        sentencias.forEach(sentencia => sentencia.accept(interprete))
+        sentencias.forEach(sentencia => sentencia.accept(compilador))
 
-        consola.value = interprete.code.toString()
+        consola.value = compilador.code.toString()
 
     } catch (error) {
         console.log(error)

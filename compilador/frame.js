@@ -1,4 +1,4 @@
-import { BaseVisitor } from "./visitor.js";
+import { BaseVisitor } from "../visitor/visitor.js";
 
 
 export class FrameVisitor extends BaseVisitor {

@@ -1,8 +1,8 @@
 import { Entorno } from "../utils/entorno.js";
 import { Errores } from "../utils/errores.js";
-import { DatoPrimitivo } from "./nodos.js";
-import { BaseVisitor } from "./visitor.js";
-import nodos, { Expresion } from './nodos.js'
+import { DatoPrimitivo } from "../visitor/nodos.js";
+import { BaseVisitor } from "../visitor/visitor.js";
+import nodos, { Expresion } from '../visitor/nodos.js'
 import { Invocable } from "./invocable.js";
 import { embebidas } from "./embebidas.js";
 import { FuncionForanea } from "./foreanea.js";

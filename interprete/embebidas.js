@@ -1,5 +1,5 @@
 import { Invocable } from "./invocable.js";
-import { DatoPrimitivo } from "./nodos.js";
+import { DatoPrimitivo } from "../visitor/nodos.js";
 import { Errores } from "../utils/errores.js";
 
 class FuncionNativa extends Invocable {
