@@ -1101,12 +1101,11 @@ export class CompilerVisitor extends BaseVisitor {
         const etiquetaRetornoLlamada = this.code.getLabel();
 
         // 1. Guardar los argumentos
-        node.args.forEach((arg, index) => {
+        this.code.addi(r.SP, r.SP, -4 * 2)
+        node.args.forEach((arg) => {
             arg.accept(this)
-            this.code.popObject(r.T0)
-            this.code.addi(r.T1, r.SP, -4 * (3 + index)) // ! REVISAR
-            this.code.sw(r.T0, r.T1)
         });
+        this.code.addi(r.SP, r.SP, 4 * (node.args.length + 2))
 
         // Calcular la dirección del nuevo FP en T1
         this.code.addi(r.T1, r.SP, -4)
@@ -1120,8 +1119,8 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.addi(r.FP, r.T1, 0)
 
         // colocar el SP al final del frame
-        // this.code.addi(r.SP, r.SP, -(this.functionMetada[nombreFuncion].frameSize - 4))
-        this.code.addi(r.SP, r.SP, -(node.args.length * 4)) // ! REVISAR
+        const frameSize = this.functionMetada[nombreFuncion].frameSize
+        this.code.addi(r.SP, r.SP, -(frameSize - 2) * 4)
 
 
         // Saltar a la función
@@ -1129,7 +1128,7 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.addLabel(etiquetaRetornoLlamada)
 
         // Recuperar el valor de retorno
-        const frameSize = this.functionMetada[nombreFuncion].frameSize
+        
         const returnSize = frameSize - 1;
         this.code.addi(r.T0, r.FP, -returnSize * 4)
         this.code.lw(r.A0, r.T0)
@@ -1139,7 +1138,7 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.lw(r.FP, r.T0)
 
         // Regresar mi SP al contexto de ejecución anterior
-        this.code.addi(r.SP, r.SP, (frameSize - 1) * 4)
+        this.code.addi(r.SP, r.SP, frameSize * 4)
 
 
         this.code.push(r.A0)
@@ -1217,6 +1216,8 @@ export class CompilerVisitor extends BaseVisitor {
         instruccionesDeDeclaracionDeFuncion.forEach(instruccion => {
             this.code.instrucionesDeFunciones.push(instruccion);
         });
+
+        this.insideFunction = false;
     }
 
     /**
