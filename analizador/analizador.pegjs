@@ -14,6 +14,12 @@
       'asignacion':           nodos.Asignacion,
       'incremento':           nodos.Incremento,
       'decremento':           nodos.Decremento,
+      'declaracionVectores':  nodos.DeclaracionVectores,
+      'referenciaVector':     nodos.ReferenciaVector,
+      'asignacionVector':     nodos.AsignacionVector,
+      'indexOf':              nodos.IndexOf,
+      'join':                 nodos.Join,
+      'length':               nodos.Length,
       'println':              nodos.Println,
       'expresionPrintln':     nodos.ExpresionPrintln,
       'expresionStmt':        nodos.ExpresionStmt,
@@ -42,8 +48,26 @@
 programa = _ dcl:Declaracion* _ { return dcl }
 
 Declaracion = _ dcl:DeclaracionVar _ { return dcl }
+            / _ dcV:VecDec _  {return dcV}
             / _ dcF:FuncDcl _ { return dcF }
             / _ stmt:Stmt _ { return stmt }
+
+VecDec = _ tipo:Tipo _ '[' _ ']' _ id:Identificador _ '=' _ '{'_  listExp:list   _'}' _ ';' _               {return crearNodo('declaracionVectores', { tipo, id, listExp, size: null, idRef: null}) }
+        /_ tipo:Tipo _ '[' _ ']' _ id:Identificador _ '=' _ 'new'_ Tipo _ '[' size:Expresion']'  _ ';' _    {return crearNodo('declaracionVectores', { tipo, id, listExp: null, size, idRef: null}) }
+        /_ tipo:Tipo _ '[' _ ']' _ id:Identificador _ '=' _ idRef:Identificador _ ';' _ {
+            return crearNodo('declaracionVectores', {
+                tipo,
+                id,
+                listExp: null,
+                size: null,
+                idRef: crearNodo('referenciaVariable', { id: idRef })
+            });
+        }
+
+list = value:Expresion _ "," _ list:list { return [value].concat(list); }
+	    / value:Expresion {	return [value]; }
+
+
 
 DeclaracionVar =  tipo:Tipo _ id:Identificador _
                 exp:(
@@ -94,7 +118,15 @@ Ternario = _ cond:Asignacion _ "?" _ expTrue:Asignacion _ ":" _ expFalse:Asignac
           /Asignacion
 
 Asignacion = id:Identificador _ "=" _ asgn:Asignacion { return crearNodo('asignacion', { id, asgn }) }
+          / id:Identificador _ '[' _ index:Expresion _ ']' _ '=' _ asgn:Expresion { 
+            return crearNodo('asignacionVector', { 
+              id: crearNodo( 'referenciaVariable', { id } ), 
+              index, 
+              asgn 
+            });  
+            }
           / AsignacionOp
+
 
 AsignacionOp = id:Identificador _ "+=" _ valor:Asignacion { return crearNodo('incremento', { id, valor }) }
             /  id:Identificador _ "-=" _ valor:Asignacion { return crearNodo('decremento', { id, valor }) }
@@ -182,8 +214,27 @@ Multiplicacion = exp_left:Unaria expansion:(
 
 Unaria =_ operacion:("-" / "!") _ num:Unaria _ { return crearNodo('OperacionU', { operacion: operacion, exp_unica: num }) }
 / LlamadaEs
-/// LlamadaEmbebidas
+/LlamadaV
 / Llamada
+
+LlamadaV = _ id:Identificador '.indexOf' _ '(' _ exp:Expresion _')' _ { 
+          return crearNodo('indexOf',  { 
+          id: crearNodo('referenciaVariable',  { id }), 
+          exp 
+          }); 
+        }
+        / _ id:Identificador '.join' _ '(' _ ')' _ { 
+          return crearNodo('join',  { 
+          id: crearNodo('referenciaVariable',  { id }), 
+          }); 
+        }
+        / _ id:Identificador '.length'  _ { 
+          return crearNodo('length',  { 
+          id: crearNodo('referenciaVariable',  { id }), 
+          }); 
+        }
+
+
 
 Llamada = callee:Nativo _ params:("(" args:Argumentos? ")" { return args })* {
   return params.reduce(
@@ -201,15 +252,19 @@ LlamadaEs = _ callee:idtypeof _ args:Expresion* _ { return crearNodo('llamada', 
 idtypeof = id:"typeof" { return crearNodo('referenciaVariable',  { id }) }
 
 
-Nativo = [0-9]+("." [0-9]+)                           { return crearNodo('dato', { valor: parseFloat(text()), tipo: "float"}) }
-      /[0-9]+                                         { return crearNodo('dato', { valor: parseInt(text(), 10), tipo: "int"}) } 
-      /("true"/"false")                               { return crearNodo('dato',    { valor: text() === "true", tipo:"boolean"})}
-      /'"' chars:( [^\\"\n\r] / escapeSequence)* '"'  { return crearNodo('dato',  { valor: chars.join(''), tipo: "string"});}
-      /"'" chars:[\x00-\uffff] "'"                    { return crearNodo('dato',    { valor: chars, tipo: "char"}); }
-      / "(" _ exp:Expresion _ ")"                     { return crearNodo('agrupacion', { exp }) }
-      / id:Identificador                              { return crearNodo('referenciaVariable',  { id }) }
-
-
+Nativo = [0-9]+("." [0-9]+)                             { return crearNodo('dato', { valor: parseFloat(text()), tipo: "float"}) }
+      /[0-9]+                                           { return crearNodo('dato', { valor: parseInt(text(), 10), tipo: "int"}) } 
+      /("true"/"false")                                 { return crearNodo('dato',    { valor: text() === "true", tipo:"boolean"})}
+      /'"' chars:( [^\\"\n\r] / escapeSequence)* '"'    { return crearNodo('dato',  { valor: chars.join(''), tipo: "string"});}
+      /"'" chars:[\x00-\uffff] "'"                      { return crearNodo('dato',    { valor: chars, tipo: "char"}); }
+      / "(" _ exp:Expresion _ ")"                       { return crearNodo('agrupacion', { exp }) }
+      / id:Identificador _ '[' _ index:Expresion _ ']'  { 
+        return crearNodo('referenciaVector',  { 
+          id: crearNodo('referenciaVariable',  { id }), 
+          index 
+          }); 
+        }
+      / id:Identificador                                { return crearNodo('referenciaVariable',  { id }) }
 
 // Secuencias de escape
 escapeSequence=  '\\"'  { return '"'; }       // Comilla doble escapada

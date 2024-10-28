@@ -434,6 +434,52 @@ export class InterpreterVisitor extends BaseVisitor {
   }
 
   /**
+    * @type {BaseVisitor['visitDeclaracionVectores']}
+  */
+  visitDeclaracionVectores(node) {
+
+  }
+
+
+  /**
+    * @type {BaseVisitor['visitReferenciaVector']}
+  */
+  visitReferenciaVector(node) {
+
+  }
+
+
+    /**
+     * @type {BaseVisitor['visitAsignacionVector']}
+    */
+    visitAsignacionVector(node) {
+
+  }
+
+    /**
+      * @type {BaseVisitor['visitIndexOf']}
+    */
+    visitIndexOf(node) {
+        
+    }
+
+    /**
+      * @type {BaseVisitor['visitJoin']}
+    */
+    visitJoin(node) {
+        
+    }
+
+    /**
+      * @type {BaseVisitor['visitLength']}
+    */
+    visitLength(node) {
+        
+    }
+
+
+
+  /**
     * @type {BaseVisitor['visitPrintln']}
   */
   visitPrintln(node) {
@@ -675,3 +721,5 @@ export class InterpreterVisitor extends BaseVisitor {
 
 
 }
+
+

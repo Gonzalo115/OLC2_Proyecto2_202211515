@@ -3,7 +3,7 @@ import { ReferenciaVariable } from "../visitor/nodos.js";
 import { registers as r, floatRegisters as f } from "../risc/constantes.js";
 import { Generador } from "../risc/generador.js";
 import { BaseVisitor } from "../visitor/visitor.js";
-import { numberToF32 } from "../risc/utils.js";
+import { stringTo1ByteArray, numberToF32 } from "../risc/utils.js";
 
 export class CompilerVisitor extends BaseVisitor {
 
@@ -435,7 +435,6 @@ export class CompilerVisitor extends BaseVisitor {
             }
 
         } else {
-            //this.code.pushConstant({ type: node.tipo, valo: r.ZERO });
             switch (node.tipo) {
                 case 'int':
                     this.code.pushConstant({ type: node.tipo, valor: 0, valuenull: 1 });
@@ -444,7 +443,7 @@ export class CompilerVisitor extends BaseVisitor {
                     this.code.pushConstant({ type: node.tipo, valor: 0, valuenull: 1 });
                     break
                 case 'char':
-                    this.code.pushConstant({ type: node.tipo, valor: '',valuenull: 1 });
+                    this.code.pushConstant({ type: node.tipo, valor: '', valuenull: 1 });
                     break
                 case 'string':
                     this.code.pushConstant({ type: node.tipo, valor: "", valuenull: 1 });
@@ -480,8 +479,8 @@ export class CompilerVisitor extends BaseVisitor {
 
 
         if (this.insideFunction) {
-            this.code.addi(r.T1, r.FP, -variableObject.offset * 4); // ! REVISAR
-            this.code.sw(r.T0, r.T1); // ! revisar
+            this.code.addi(r.T1, r.FP, -variableObject.offset * 4);
+            this.code.sw(r.T0, r.T1);
             return
         }
 
@@ -518,7 +517,6 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.lw(r.T1, r.T0);
         this.code.push(r.T1);
         this.code.pushObject({ ...variableObject, id: undefined });
-
         this.code.comment(`Fin Referencia Variable: ${node.id}`);
     }
 
@@ -641,6 +639,373 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.comment(`Fin Incremento Variable: ${node.id}`);
     }
 
+    /**
+      * @type {BaseVisitor['visitDeclaracionVectores']}
+    */
+    visitDeclaracionVectores(node) {
+        this.code.comment(`Declaracion del Vector: ${node.id}`);
+        if (node.listExp) {
+            this.code.push(r.HP);
+
+            node.listExp.forEach((value) => {
+                value.accept(this)
+                this.code.popObject(r.T0)
+                this.code.li(r.T1, 1)
+                this.code.add(r.T0, r.T0, r.T1)
+                this.code.sb(r.T0, r.HP)
+                this.code.addi(r.HP, r.HP, 1)
+            });
+
+            this.code.sb(r.ZERO, r.HP)
+            this.code.addi(r.HP, r.HP, 1)
+        } else if (node.size) {
+
+            this.code.push(r.HP);
+            node.size.accept(this);
+
+            //Numero de espacios a reservar
+            this.code.popObject(r.T0)
+
+            //Contador de espacios ya reservados
+            this.code.li(r.T1, 0)
+
+            //Constante para aumentar
+            this.code.li(r.T2, 1)
+
+            //Etiquetas de salto
+            const end = this.code.getLabel()
+            const ciclo1 = this.code.addLabel()
+
+            //Ciclo para reservar espacios
+            this.code.beq(r.T0, r.T1, end)
+            //Reservando espacio
+            this.code.sb(r.T2, r.HP)
+            this.code.addi(r.HP, r.HP, 1)
+
+            //Incremento a el contador
+            this.code.add(r.T1, r.T1, r.T2)
+
+            //salto a el bucle
+            this.code.j(ciclo1)
+
+            //Etiqueta de finalizacion
+            this.code.addLabel(end)
+
+
+            this.code.sb(r.ZERO, r.HP)
+            this.code.addi(r.HP, r.HP, 1)
+        } else if (node.idRef) {
+            //Obtener los valores del vector llamado
+            node.idRef.accept(this)
+            //Guardar en A0
+            this.code.popObject(r.T1)
+            this.code.add(r.A0, r.ZERO, r.T1)
+
+            //Agregar en hp en el stack
+            this.code.push(r.HP);
+
+            //Etiquetas de salto
+            const end = this.code.getLabel()
+            const loop = this.code.addLabel()
+            //Copiando en la nueva direccion
+            this.code.lb(r.T1, r.A0)
+            this.code.beq(r.T1, r.ZERO, end)
+            this.code.sb(r.T1, r.HP)
+            this.code.addi(r.HP, r.HP, 1)
+            this.code.addi(r.A0, r.A0, 1)
+            this.code.j(loop)
+            this.code.addLabel(end)
+            this.code.sb(r.ZERO, r.HP)
+            this.code.addi(r.HP, r.HP, 1)
+
+        }
+        this.code.pushObject({ type: 'string', typeV: node.tipo, length: 4, depth: this.code.depth, valuenull: 0 })
+        this.code.tagObject(node.id)
+        this.code.comment(`Fin declaracion del Vector: ${node.id}`)
+    }
+
+    /**
+  * @type {BaseVisitor['visitReferenciaVector']}
+*/
+    visitReferenciaVector(node) {
+        this.code.comment(`Acceso a el vector: ${node.id}`)
+
+        //Obtener el index en el que guardaremos el nodo
+        node.index.accept(this)
+
+
+        //Abstraer todo el contenido del arreglo
+        node.id.accept(this)
+        const obj = this.code.popObject(r.A1)
+        this.code.popObject(r.T0)
+        //  MOVER EL PUNTERO
+        // auxiliar
+        this.code.li(r.T1, 0)
+
+
+        //Agregar etiquetas
+        const end = this.code.getLabel()
+        const end1 = this.code.getLabel()
+        const error = this.code.getLabel()
+        const loop = this.code.addLabel()
+
+        this.code.lb(r.T2, r.A1)
+
+        this.code.beq(r.T2, r.ZERO, error)
+        this.code.beq(r.T1, r.T0, end)
+
+        this.code.addi(r.T1, r.T1, 1)
+        this.code.addi(r.A1, r.A1, 1)
+        this.code.j(loop)
+
+        //Saltar aqui si es verdadero
+        this.code.addLabel(end)
+        this.code.addi(r.T2, r.T2, -1)
+        this.code.push(r.T2)
+
+        this.code.j(end1)
+
+        //Saltar aqui si hay un error
+        this.code.addLabel(error)
+        this.code.push(r.HP)
+        const stringArrayError = stringTo1ByteArray("error fuera de rango el indice");
+        stringArrayError.forEach((charCode) => {
+            this.code.li(r.T0, charCode);
+            this.code.sb(r.T0, r.HP);
+            this.code.addi(r.HP, r.HP, 1);
+        });
+        this.code.pop(r.A0)
+        this.code.li(r.A7, 4)
+        this.code.ecall()
+        this.code.li(r.A0, 10)
+        this.code.li(r.A7, 11)
+        this.code.ecall()
+        this.code.li(r.T0, 0)
+        this.code.push(r.T0)
+
+        this.code.addLabel(end1)
+
+        this.code.pushObject({ type: obj.typeV, length: 4 });
+
+        this.code.comment(`Fin de acceso del vector: ${node.id}`)
+    }
+
+
+    /**
+     * @type {BaseVisitor['visitAsignacionVector']}
+    */
+    visitAsignacionVector(node) {
+        node.asgn.accept(this)
+        node.id.accept(this)
+        node.index.accept(this)
+
+        //Indece en dondo se va guardar 
+        this.code.popObject(r.T1)
+
+        //Arreglo en donde se van a guardar
+        this.code.popObject(r.A0)
+
+        //Valor a guardar
+        this.code.popObject(r.T0)
+        this.code.addi(r.T0, r.T0, 1)
+
+        // auxiliar
+        this.code.li(r.T3, 0)
+
+        //Agregar etiquetas
+        const end = this.code.getLabel()
+        const end1 = this.code.getLabel()
+        const error = this.code.getLabel()
+        const loop = this.code.addLabel()
+
+        this.code.lb(r.T2, r.A0)
+
+        this.code.beq(r.T2, r.ZERO, error)
+        this.code.beq(r.T3, r.T1, end)
+
+        this.code.addi(r.T3, r.T3, 1)
+        this.code.addi(r.A0, r.A0, 1)
+        this.code.j(loop)
+
+        //Saltar aqui si es verdadero
+        this.code.addLabel(end)
+
+        //Cambiar el contenido
+        this.code.sb(r.T0, r.A0);
+        this.code.push(r.T0);
+
+        this.code.j(end1)
+
+        //Saltar aqui si hay un error
+        this.code.addLabel(error)
+        this.code.push(r.HP)
+        const stringArrayError = stringTo1ByteArray("error fuera de rango el indice");
+        stringArrayError.forEach((charCode) => {
+            this.code.li(r.T0, charCode);
+            this.code.sb(r.T0, r.HP);
+            this.code.addi(r.HP, r.HP, 1);
+        });
+        this.code.pop(r.A0)
+        this.code.li(r.A7, 4)
+        this.code.ecall()
+        this.code.li(r.A0, 10)
+        this.code.li(r.A7, 11)
+        this.code.ecall()
+        this.code.li(r.T0, 0)
+        this.code.push(r.T0)
+
+        this.code.addLabel(end1)
+
+        this.code.pushObject({ type: 'int', length: 4 });
+
+
+    }
+
+
+    /**
+      * @type {BaseVisitor['visitIndexOf']}
+    */
+    visitIndexOf(node) {
+        node.id.accept(this)
+        node.exp.accept(this)
+
+        //Valor a buscar en el arreglo
+        this.code.popObject(r.T0)
+
+        //El arreglo que evaluaremos
+        const obj = this.code.popObject(r.A0)
+
+        //Auxiliar de la posicion
+        this.code.li(r.T2, 0)
+
+        switch (obj.typeV) {
+            case 'boolean':
+            case 'int':
+                //Agregar etiquetas
+                const falseL = this.code.getLabel()
+                const end = this.code.getLabel()
+                const loop = this.code.addLabel()
+
+                this.code.lb(r.T1, r.A0)
+
+                this.code.beq(r.T1, r.ZERO, falseL)
+
+                this.code.addi(r.T1, r.T1, -1)
+                this.code.beq(r.T0, r.T1, end)
+
+                this.code.addi(r.A0, r.A0, 1)
+                this.code.addi(r.T2, r.T2, 1)
+                this.code.j(loop)
+
+                //Saltar aqui si se no encontro el valor
+                this.code.addLabel(falseL)
+                this.code.li(r.T2, -1)
+
+                this.code.addLabel(end)
+                this.code.push(r.T2)
+
+
+                break;
+
+        }
+        this.code.pushObject({ type: 'int', length: 4 })
+
+    }
+
+    /**
+      * @type {BaseVisitor['visitJoin']}
+    */
+    visitJoin(node) {
+        node.id.accept(this)
+
+        //El arreglo que evaluaremos
+        const obj = this.code.popObject(r.A4)
+
+
+        switch (obj.typeV) {
+            case 'int':
+
+                //Primero crearemo el lugar en donde se concatenara todo nuestro arreglo
+                this.code.push(r.HP);
+                this.code.sb(r.ZERO, r.HP)
+                this.code.addi(r.HP, r.HP, 1)
+                //this.code.pushObject({ type: 'string', length: 4 });
+
+                this.code.callBuiltinAux('AuxtoStringI');//Generalizar para transformar los enteros en cadenas
+                this.code.callBuiltinAux('concatString');//Nos servira para concatener las cadenas
+
+                //concatenar
+                const end = this.code.getLabel()
+                const loop = this.code.addLabel()
+
+                //Convertiremos nuestra 
+                this.code.lb(r.T0, r.A4)
+                this.code.addi(r.T0, r.T0, -1)
+                this.code.callBuiltin('FtoStringI');
+                this.code.pop(r.A1)
+                this.code.pop(r.A0)
+                this.code.callBuiltin('concatString')
+
+                //Avanzamos en nuestro arreglo
+                this.code.addi(r.A4, r.A4, 1)
+                this.code.lb(r.T0, r.A4)
+                //Evaluamos si es que la siguiente valor es null osea si se termino nuestro arreglo ya no devemos concatenar
+                this.code.beq(r.T0, r.ZERO, end)
+
+                //Si llaga aqui significa que hay que segir concatenando al igual agregaremos una ','
+                this.code.push(r.HP);
+                this.code.li(r.T0, 44)
+                this.code.sb(r.T0, r.HP)
+                this.code.addi(r.HP, r.HP, 1)
+                this.code.sb(r.ZERO, r.HP)
+                this.code.addi(r.HP, r.HP, 1)
+
+                this.code.pop(r.A1)
+                this.code.pop(r.A0)
+                this.code.callBuiltin('concatString')
+                
+                this.code.j(loop)
+                this.code.addLabel(end)
+
+
+                break;
+        }
+        this.code.pushObject({ type: 'string', length: 4 })
+    }
+
+    /**
+      * @type {BaseVisitor['visitLength']}
+    */
+    visitLength(node) {
+        console.log(node)
+        node.id.accept(this)
+
+        //El arreglo que evaluaremos
+        this.code.popObject(r.A0)
+
+        //Auxiliar para contar el tamaño
+        this.code.li(r.T0, 0)
+
+        //contador
+        const end = this.code.getLabel()
+        const loop = this.code.addLabel()
+
+        this.code.lb(r.T1, r.A0)
+
+        this.code.beq(r.T1, r.ZERO, end)
+
+        this.code.addi(r.A0, r.A0, 1)
+        this.code.addi(r.T0, r.T0, 1)
+        this.code.j(loop)
+
+        //Saltar aqui si se no encontro el valor
+        this.code.addLabel(end)
+        this.code.push(r.T0)
+
+        this.code.pushObject({ type: 'int', length: 4 })
+    }
+
+
 
     /**
       * @type {BaseVisitor['visitPrintln']}
@@ -651,9 +1016,9 @@ export class CompilerVisitor extends BaseVisitor {
 
         const isFloat = this.code.getTopObject().type === 'float';
         const object = this.code.popObject(isFloat ? f.FA0 : r.A0);
-        if(object.valuenull){
+        if (object.valuenull) {
             this.code.printNull()
-        }else{
+        } else {
             const tipoPrint = {
                 'int': () => this.code.printInt(),
                 'float': () => this.code.printFloat(),
@@ -1128,7 +1493,7 @@ export class CompilerVisitor extends BaseVisitor {
         this.code.addLabel(etiquetaRetornoLlamada)
 
         // Recuperar el valor de retorno
-        
+
         const returnSize = frameSize - 1;
         this.code.addi(r.T0, r.FP, -returnSize * 4)
         this.code.lw(r.A0, r.T0)

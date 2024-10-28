@@ -33,7 +33,6 @@ function analisisSemantico(sentencias, interprete) {
             erroresSemanticos.push(error);
             analisisSemantico(sentencias, interprete, i++)
         }
-        console.log(error.message)
         return error
     }
 

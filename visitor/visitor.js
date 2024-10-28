@@ -40,6 +40,24 @@
  * @typedef {import('./nodos.js').Decremento} Decremento
 
 
+ * @typedef {import('./nodos.js').DeclaracionVectores} DeclaracionVectores
+
+
+ * @typedef {import('./nodos.js').ReferenciaVector} ReferenciaVector
+
+
+ * @typedef {import('./nodos.js').AsignacionVector} AsignacionVector
+
+
+ * @typedef {import('./nodos.js').IndexOf} IndexOf
+
+
+ * @typedef {import('./nodos.js').Join} Join
+
+
+ * @typedef {import('./nodos.js').Length} Length
+
+
  * @typedef {import('./nodos.js').Println} Println
 
 
@@ -211,6 +229,60 @@ export class BaseVisitor {
      */
     visitDecremento(node) {
         throw new Error('Metodo visitDecremento no implementado');
+    }
+    
+
+    /**
+     * @param {DeclaracionVectores} node
+     * @returns {any}
+     */
+    visitDeclaracionVectores(node) {
+        throw new Error('Metodo visitDeclaracionVectores no implementado');
+    }
+    
+
+    /**
+     * @param {ReferenciaVector} node
+     * @returns {any}
+     */
+    visitReferenciaVector(node) {
+        throw new Error('Metodo visitReferenciaVector no implementado');
+    }
+    
+
+    /**
+     * @param {AsignacionVector} node
+     * @returns {any}
+     */
+    visitAsignacionVector(node) {
+        throw new Error('Metodo visitAsignacionVector no implementado');
+    }
+    
+
+    /**
+     * @param {IndexOf} node
+     * @returns {any}
+     */
+    visitIndexOf(node) {
+        throw new Error('Metodo visitIndexOf no implementado');
+    }
+    
+
+    /**
+     * @param {Join} node
+     * @returns {any}
+     */
+    visitJoin(node) {
+        throw new Error('Metodo visitJoin no implementado');
+    }
+    
+
+    /**
+     * @param {Length} node
+     * @returns {any}
+     */
+    visitLength(node) {
+        throw new Error('Metodo visitLength no implementado');
     }
     
 

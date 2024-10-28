@@ -274,7 +274,7 @@ export class Generador {
 
 
         if(object.valuenull){
-            this.pushObject({ type: object.type, length, depth: this.depth, valuenull: object.valuenull });
+            this.pushObject({ type: object.type, typeV: '', length, depth: this.depth, valuenull: object.valuenull });
             return
         }
 
@@ -318,7 +318,7 @@ export class Generador {
                 break;
         }
 
-        this.pushObject({ type: object.type, length, depth: this.depth, valuenull: object.valuenull });
+        this.pushObject({ type: object.type, typeV: '', length, depth: this.depth, valuenull: object.valuenull });
     }
 
     pushObject(object) {

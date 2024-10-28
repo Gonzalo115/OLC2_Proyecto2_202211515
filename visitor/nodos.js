@@ -461,6 +461,220 @@ export class Decremento extends Expresion {
     }
 }
     
+export class DeclaracionVectores extends Expresion {
+
+    /**
+    * @param {Object} options
+    * @param {any} options.tipo Tipo de valores que contiene el vector
+ * @param {string} options.id Identificador del vector
+ * @param {list[exp]|undefined} options.listExp Vector
+ * @param {number|undefined} options.size Vector
+ * @param {string|undefined} options.idRef Vector
+    */
+    constructor({ tipo, id, listExp, size, idRef }) {
+        super();
+        
+        /**
+         * Tipo de valores que contiene el vector
+         * @type {any}
+        */
+        this.tipo = tipo;
+
+
+        /**
+         * Identificador del vector
+         * @type {string}
+        */
+        this.id = id;
+
+
+        /**
+         * Vector
+         * @type {list[exp]|undefined}
+        */
+        this.listExp = listExp;
+
+
+        /**
+         * Vector
+         * @type {number|undefined}
+        */
+        this.size = size;
+
+
+        /**
+         * Vector
+         * @type {string|undefined}
+        */
+        this.idRef = idRef;
+
+    }
+
+    /**
+     * @param {BaseVisitor} visitor
+     */
+    accept(visitor) {
+        return visitor.visitDeclaracionVectores(this);
+    }
+}
+    
+export class ReferenciaVector extends Expresion {
+
+    /**
+    * @param {Object} options
+    * @param {string} options.id Identificador del vector
+ * @param {exp} options.index index de acceso del vector
+    */
+    constructor({ id, index }) {
+        super();
+        
+        /**
+         * Identificador del vector
+         * @type {string}
+        */
+        this.id = id;
+
+
+        /**
+         * index de acceso del vector
+         * @type {exp}
+        */
+        this.index = index;
+
+    }
+
+    /**
+     * @param {BaseVisitor} visitor
+     */
+    accept(visitor) {
+        return visitor.visitReferenciaVector(this);
+    }
+}
+    
+export class AsignacionVector extends Expresion {
+
+    /**
+    * @param {Object} options
+    * @param {string} options.id Identificador del vector
+ * @param {Expresion} options.index index de acceso del vector
+ * @param {Expresion} options.asgn index de acceso del vector
+    */
+    constructor({ id, index, asgn }) {
+        super();
+        
+        /**
+         * Identificador del vector
+         * @type {string}
+        */
+        this.id = id;
+
+
+        /**
+         * index de acceso del vector
+         * @type {Expresion}
+        */
+        this.index = index;
+
+
+        /**
+         * index de acceso del vector
+         * @type {Expresion}
+        */
+        this.asgn = asgn;
+
+    }
+
+    /**
+     * @param {BaseVisitor} visitor
+     */
+    accept(visitor) {
+        return visitor.visitAsignacionVector(this);
+    }
+}
+    
+export class IndexOf extends Expresion {
+
+    /**
+    * @param {Object} options
+    * @param {string} options.id Identificador del vector
+ * @param {Expresion} options.exp index de acceso del vector
+    */
+    constructor({ id, exp }) {
+        super();
+        
+        /**
+         * Identificador del vector
+         * @type {string}
+        */
+        this.id = id;
+
+
+        /**
+         * index de acceso del vector
+         * @type {Expresion}
+        */
+        this.exp = exp;
+
+    }
+
+    /**
+     * @param {BaseVisitor} visitor
+     */
+    accept(visitor) {
+        return visitor.visitIndexOf(this);
+    }
+}
+    
+export class Join extends Expresion {
+
+    /**
+    * @param {Object} options
+    * @param {string} options.id Identificador del vector
+    */
+    constructor({ id }) {
+        super();
+        
+        /**
+         * Identificador del vector
+         * @type {string}
+        */
+        this.id = id;
+
+    }
+
+    /**
+     * @param {BaseVisitor} visitor
+     */
+    accept(visitor) {
+        return visitor.visitJoin(this);
+    }
+}
+    
+export class Length extends Expresion {
+
+    /**
+    * @param {Object} options
+    * @param {string} options.id Identificador del vector
+    */
+    constructor({ id }) {
+        super();
+        
+        /**
+         * Identificador del vector
+         * @type {string}
+        */
+        this.id = id;
+
+    }
+
+    /**
+     * @param {BaseVisitor} visitor
+     */
+    accept(visitor) {
+        return visitor.visitLength(this);
+    }
+}
+    
 export class Println extends Expresion {
 
     /**
@@ -985,4 +1199,4 @@ export class Parametro extends Expresion {
     }
 }
     
-export default { Expresion, Aritmetica, Operacion_Unaria, Comparacion, Relacional, Logico, Agrupacion, DatoPrimitivo, DeclaracionVariable, ReferenciaVariable, Asignacion, Incremento, Decremento, Println, ExpresionPrintln, ExpresionStmt, Bloque, Ternario, If, Switch, Caso, While, For, Break, Continue, Return, Llamada, FuncDcl, Parametro }
+export default { Expresion, Aritmetica, Operacion_Unaria, Comparacion, Relacional, Logico, Agrupacion, DatoPrimitivo, DeclaracionVariable, ReferenciaVariable, Asignacion, Incremento, Decremento, DeclaracionVectores, ReferenciaVector, AsignacionVector, IndexOf, Join, Length, Println, ExpresionPrintln, ExpresionStmt, Bloque, Ternario, If, Switch, Caso, While, For, Break, Continue, Return, Llamada, FuncDcl, Parametro }
