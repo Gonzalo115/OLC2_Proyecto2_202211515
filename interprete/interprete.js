@@ -461,7 +461,7 @@ export class InterpreterVisitor extends BaseVisitor {
       valorVariable = node.idRef.accept(this)
     }
 
-    const nodo = new DatoPrimitivo({ valor: valorVariable, tipo: node.tipo })
+    const nodo = new DatoPrimitivo({ valor: valorVariable, tipo: 'vector' })
     nodo.location = node.location
 
 
@@ -562,7 +562,6 @@ export class InterpreterVisitor extends BaseVisitor {
     const concatenado = valor.join(',');
     const nodo = new DatoPrimitivo({ valor: concatenado, tipo: "string" })
     nodo.location = node.location
-    console.log(nodo)
     return nodo
   }
 

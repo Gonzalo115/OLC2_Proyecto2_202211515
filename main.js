@@ -33,6 +33,7 @@ function analisisSemantico(sentencias, interprete) {
             erroresSemanticos.push(error);
             analisisSemantico(sentencias, interprete, i++)
         }
+        console.log(error)
         return error
     }
 
@@ -231,7 +232,7 @@ btnTabla.addEventListener('click', () => {
     `;
 
     // Utilizar un bucle for en lugar de forEach para erroresSemanticos
-    for (let i = 0; i < erroresSemanticos.length; i++) {
+    for (let i = 0; i < entornosG.length; i++) {
         if (i >= entornosG.length) {
             break;
         }
