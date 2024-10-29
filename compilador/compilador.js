@@ -977,7 +977,6 @@ export class CompilerVisitor extends BaseVisitor {
       * @type {BaseVisitor['visitLength']}
     */
     visitLength(node) {
-        console.log(node)
         node.id.accept(this)
 
         //El arreglo que evaluaremos

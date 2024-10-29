@@ -437,7 +437,35 @@ export class InterpreterVisitor extends BaseVisitor {
     * @type {BaseVisitor['visitDeclaracionVectores']}
   */
   visitDeclaracionVectores(node) {
+    const nombreVariable = node.id
+    let valorVariable = []
 
+
+    if (node.listExp) {
+      node.listExp.forEach((value) => {
+        let valor = value.accept(this)
+        valorVariable.push(valor)
+      });
+    } else if (node.size) {
+      const tam = node.size.accept(this)
+      if (tam.tipo == 'int') {
+        const tamano = tam.valor
+        for (let i = 0; i < tamano; i++) {
+          valorVariable.push(0)
+        }
+      } else {
+        throw new Errores("El tamño debe ser un numero entero", node.location.start.line, node.location.start.column)
+      }
+
+    } else if (node.idRef) {
+      valorVariable = node.idRef.accept(this)
+    }
+
+    const nodo = new DatoPrimitivo({ valor: valorVariable, tipo: node.tipo })
+    nodo.location = node.location
+
+
+    this.entornoActual.set(nombreVariable, nodo);
   }
 
 
@@ -445,37 +473,110 @@ export class InterpreterVisitor extends BaseVisitor {
     * @type {BaseVisitor['visitReferenciaVector']}
   */
   visitReferenciaVector(node) {
+    const valorV = node.id.accept(this)
+    const vec = valorV.valor
+    const index = node.index.accept(this)
+
+    if (index.tipo !== 'int') {
+      throw new Errores("El tamño debe ser un numero entero", node.location.start.line, node.location.start.column)
+    }
+
+
+    if (vec.length - 1 < index.valor) {
+      throw new Errores("El indice sobrepasa el limite", node.location.start.line, node.location.start.column)
+    }
+
+    const nodo = new DatoPrimitivo({ valor: vec[index.valor], tipo: valorV.tipo })
+    nodo.location = node.location
+
+    return nodo
 
   }
 
 
-    /**
-     * @type {BaseVisitor['visitAsignacionVector']}
-    */
-    visitAsignacionVector(node) {
+  /**
+   * @type {BaseVisitor['visitAsignacionVector']}
+  */
+  visitAsignacionVector(node) {
+    console.log(node)
+
+    //valor a guardar
+    const valor = node.asgn.accept(this)
+    //index
+    const index = node.index.accept(this)
+    //Referecicin a variable
+    let valorV = node.id.accept(this)
+    const vec = valorV.valor
+
+
+    if (index.tipo !== 'int') {
+      throw new Errores("El tamño debe ser un numero entero", node.location.start.line, node.location.start.column)
+    }
+
+    if (vec.length - 1 < index.valor) {
+      throw new Errores("El indice sobrepasa el limite", node.location.start.line, node.location.start.column)
+    }
+
+    vec[index.valor] = valor.valor;
+
+
+    this.entornoActual.assign(node.id, vec)
+
+    return vec;
 
   }
 
-    /**
-      * @type {BaseVisitor['visitIndexOf']}
-    */
-    visitIndexOf(node) {
-        
-    }
+  /**
+    * @type {BaseVisitor['visitIndexOf']}
+  */
+  visitIndexOf(node) {
+    const areglo = node.id.accept(this).valor
+    const exp = node.exp.accept(this).valor
 
-    /**
-      * @type {BaseVisitor['visitJoin']}
-    */
-    visitJoin(node) {
-        
-    }
+    for (let i = 0; i < areglo.length; i++) {
+      if (areglo[i].valor === exp) {
+        const nodo = new DatoPrimitivo({ valor: i, tipo: "int" })
+        nodo.location = node.location
 
-    /**
-      * @type {BaseVisitor['visitLength']}
-    */
-    visitLength(node) {
-        
+        console.log(nodo)
+        return nodo
+      }
+
     }
+    const nodo = new DatoPrimitivo({ valor: -1, tipo: "int" })
+    nodo.location = node.location
+    return nodo
+
+
+  }
+
+  /**
+    * @type {BaseVisitor['visitJoin']}
+  */
+  visitJoin(node) {
+    const areglo = node.id.accept(this).valor
+    let valor = [];
+    for (let i = 0; i < areglo.length; i++) {
+      valor.push(areglo[i].valor)
+    }
+    const concatenado = valor.join(',');
+    const nodo = new DatoPrimitivo({ valor: concatenado, tipo: "string" })
+    nodo.location = node.location
+    console.log(nodo)
+    return nodo
+  }
+
+  /**
+    * @type {BaseVisitor['visitLength']}
+  */
+  visitLength(node) {
+    const areglo = node.id.accept(this).valor
+
+    const nodo = new DatoPrimitivo({ valor: areglo.length, tipo: "int" })
+    nodo.location = node.location
+    return nodo
+
+  }
 
 
 
